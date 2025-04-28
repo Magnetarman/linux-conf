@@ -7,6 +7,9 @@ if ! command -v yay &> /dev/null; then
     makepkg -si
     cd ..
     rm -rf yay
+    echo "Installazione Python..."
+    sudo pacman -Syu
+    sudo pacman -S ffmpeg python-pip tk
 fi
 
 # Ora installiamo tutti i pacchetti richiesti
@@ -25,6 +28,7 @@ yay -S --needed \
     obsidian \
     occt \
     ollama-bin \
+    plexamp-desktop \
     qbittorrent \
     reaper \
     rustdesk-bin \
@@ -42,11 +46,3 @@ yay -S --needed \
     freefilesync-bin \
     github-desktop-bin \
     baobab
-
-# Per i pacchetti che non sono stati trovati nell'AUR, mostriamo un messaggio
-echo "===================================================================="
-echo "NOTA: I seguenti pacchetti non sono stati trovati nell'AUR o potrebbero avere nomi diversi:"
-echo "- Local by Flywheel"
-echo "- Ultimate Vocal Remover"
-echo "===================================================================="
-echo "Puoi cercare alternative per questi pacchetti usando: yay -Ss nome_pacchetto"
