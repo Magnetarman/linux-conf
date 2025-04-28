@@ -15,30 +15,22 @@ yay -S --needed \
     brave-bin \
     discord \
     enpass-bin \
-    legendary-git \
+    legendary \
     fancontrol-gui \
     freac \
-    gog-galaxy-bin \
+    heroic-games-launcher-bin \
     jdownloader2 \
-    lm-studio-bin \
-    local-by-flywheel \
     localsend-bin \
     obs-studio \
     obsidian \
     occt \
-    playnite \
-    plexamp-appimage \
-    protonvpn \
+    ollama-bin \
     qbittorrent \
     reaper \
     rustdesk-bin \
-    windscribe-cli \
     winscp \
     steam \
     telegram-desktop \
-    treefishl \
-    twinkle-tray \
-    ultimate-vocal-remover-gui \
     upscayl-bin \
     vlc \
     spotify \
@@ -48,4 +40,13 @@ yay -S --needed \
     thunderbird \
     mp3tag \
     freefilesync-bin \
-    github-desktop-bin
+    github-desktop-bin \
+    baobab
+
+# Per i pacchetti che non sono stati trovati nell'AUR, mostriamo un messaggio
+echo "===================================================================="
+echo "NOTA: I seguenti pacchetti non sono stati trovati nell'AUR o potrebbero avere nomi diversi:"
+echo "- Local by Flywheel"
+echo "- Ultimate Vocal Remover"
+echo "===================================================================="
+echo "Puoi cercare alternative per questi pacchetti usando: yay -Ss nome_pacchetto"
