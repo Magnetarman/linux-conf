@@ -70,7 +70,10 @@ curl -fsSL https://ollama.com/install.sh | sh
 print_msg "Installazione di pacchetti AUR selezionati..."
 yay -S --needed --noconfirm \
     p7zip \
+    p7zip-gui \
     brave-bin \
+    localsend-bin \
+    handbrake \
     discord \
     enpass-bin \
     legendary \
@@ -89,17 +92,22 @@ yay -S --needed --noconfirm \
     winscp \
     steam \
     telegram-desktop \
+    whatsapp-linux-desktop \
     upscayl-bin \
     vlc \
+    youtube-to-mp3 \
     spotify \
     visual-studio-code-bin \
     mkvtoolnix-gui \
     firefox \
+    wine \
     thunderbird \
     mp3tag \
     freefilesync-bin \
     github-desktop-bin \
     baobab \
+    fastfetch-git \
+    onlyoffice-bin \
     jdk-openjdk
 
 # Pulizia pacchetti orfani
