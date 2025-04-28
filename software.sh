@@ -1,4 +1,6 @@
-# Prima installiamo yay se non è già installato
+#!/bin/bash
+
+# Controlla se yay è installato
 if ! command -v yay &> /dev/null; then
     echo "Installazione di yay..."
     sudo pacman -S --needed git base-devel
@@ -7,13 +9,20 @@ if ! command -v yay &> /dev/null; then
     makepkg -si
     cd ..
     rm -rf yay
-    echo "Installazione Python..."
-    sudo pacman -Syu
-    sudo pacman -S ffmpeg python-pip tk
 fi
 
-# Ora installiamo tutti i pacchetti richiesti
-yay -S --needed \
+# Aggiorna il sistema e installa Python, ffmpeg, pip e tk
+echo "Installazione Python e pacchetti di supporto..."
+sudo pacman -Syu --noconfirm
+sudo pacman -S --noconfirm ffmpeg python-pip tk
+
+# Installa Ollama
+echo "Installazione Ollama..."
+curl -fsSL https://ollama.com/install.sh | sh
+
+# Installa i pacchetti desiderati con yay
+echo "Installazione dei pacchetti AUR tramite yay..."
+yay -S --needed --noconfirm \
     p7zip \
     brave-bin \
     discord \
@@ -28,7 +37,6 @@ yay -S --needed \
     obsidian \
     occt \
     ollama-bin \
-    plexamp-desktop \
     qbittorrent \
     reaper \
     rustdesk-bin \
@@ -45,4 +53,11 @@ yay -S --needed \
     mp3tag \
     freefilesync-bin \
     github-desktop-bin \
-    baobab
+    baobab \
+    jdk-openjdk
+
+# Esecuzione dello script Python install-vocal-remover.py
+echo "Installazione vocal remover in corso..."
+python3 "$(dirname "$0")/install-vocal-remover.py"
+
+echo "Installazione completata con successo."
