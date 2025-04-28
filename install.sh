@@ -72,8 +72,10 @@ yay -S --needed --noconfirm \
     p7zip \
     p7zip-gui \
     brave-bin \
+    hdsentinel \
     localsend-bin \
     handbrake \
+    skanpage \
     discord \
     enpass-bin \
     legendary \
