@@ -72,6 +72,8 @@ yay -S --needed --noconfirm \
     p7zip \
     p7zip-gui \
     brave-bin \
+    piper \
+    libratbag \
     hdsentinel \
     localsend-bin \
     handbrake \
