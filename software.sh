@@ -1,4 +1,34 @@
 #!/bin/bash
+# Aggiorna il sistema
+echo "Aggiornando il sistema..."
+sudo pacman -Syu --noconfirm
+
+# Installa yay (AUR helper) se non è già presente
+if ! command -v yay &> /dev/null; then
+    echo "yay non trovato. Installazione..."
+    sudo pacman -S yay --noconfirm
+fi
+
+# Aggiungi il repository di Plexamp su AUR
+echo "Aggiungendo il repository Plexamp tramite AUR..."
+yay -S --noconfirm plexamp-appimage
+
+# Scarica l'ultima versione di Plexamp AppImage
+echo "Scaricando l'AppImage di Plexamp..."
+LATEST_URL=$(curl -s https://api.github.com/repos/plexinc/plexamp/releases/latest | jq -r .assets[0].browser_download_url)
+curl -L -o "Plexamp.AppImage" "$LATEST_URL"
+
+# Rendi il file AppImage eseguibile
+echo "Rendendo Plexamp AppImage eseguibile..."
+chmod +x Plexamp.AppImage
+
+# Aggiungi Plexamp al menu delle applicazioni (opzionale, se vuoi l'integrazione)
+echo "Integrare Plexamp nel sistema..."
+./Plexamp.AppImage --install
+
+# Avvia Plexamp
+echo "Avviando Plexamp..."
+./Plexamp.AppImage &
 
 # Controlla se yay è installato
 if ! command -v yay &> /dev/null; then
