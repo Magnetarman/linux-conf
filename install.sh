@@ -333,16 +333,19 @@ sudo systemctl enable --now ollama.service
 # Verifica se il servizio è attivo
 if systemctl is-active --quiet ollama; then
     print_msg "Servizio ollama attivo."
+
+    # Verifica se il modello è già installato
+    if ollama list | grep -q "^$MODEL[[:space:]]"; then
+        print_msg "Il modello '$MODEL' è già installato. Salto il download."
+    else
+        print_msg "Scarico il modello '$MODEL'..."
+        ollama pull "$MODEL"
+    fi
 else
     echo "Errore nell'avvio del servizio ollama."
     exit 1
 fi
 
-# Scarica ed esegue il modello selezionato
-print_msg "Scarico e configuro il modello $MODEL..."
-ollama run "$MODEL"
-
-print_msg "Tutto pronto! Ollama è in esecuzione con il modello $MODEL."
 
 # ============= INSTALLAZIONE MYBASH ============= #
 print_msg "Installazione di MyBash (shell personalizzata)..."
@@ -491,92 +494,70 @@ configureAutoCpufreq() {
 installAutoCpufreq
 configureAutoCpufreq
 
-# ============= ESECUZIONE SCRIPT AGGIUNTIVI ============= #
-print_msg "Esecuzione degli script aggiuntivi di configurazione..."
+#!/bin/bash
+
+# ============= FUNZIONI DI SUPPORTO =============
 
 executeAdditionalScript() {
     local script_name="$1"
-    
-    if [ -f "./$script_name" ]; then
-        print_msg "Esecuzione di $script_name..."
-        
-        # Verifica che lo script sia eseguibile
-        if [ ! -x "./$script_name" ]; then
-            print_warn "$script_name non è eseguibile. Aggiunta dei permessi di esecuzione..."
-            chmod +x "./$script_name"
-        fi
-        
-        # Esecuzione dello script in modalità automatica
-        # Utilizzo di AUTOMATED=1 come variabile d'ambiente per indicare modalità automatica
-        AUTOMATED=1 bash "./$script_name"
-        
-        if [ $? -eq 0 ]; then
-            print_msg "$script_name eseguito con successo."
-        else
-            print_error "$script_name ha riscontrato errori durante l'esecuzione."
-        fi
-    else
-        print_warn "$script_name non trovato nella directory corrente. Script saltato."
-    fi
-}
 
-# Funzione per eseguire script esterni con output verboso
-executeAdditionalScript() {
-    local script_name="$1"
-    
     echo "=================================================="
     echo ">>> AVVIO ESECUZIONE SCRIPT: ${script_name}"
     echo "=================================================="
-    
-    # Controlla se lo script esiste prima di eseguirlo
-    if [ -f "$script_name" ]; then
+
+    if [ -f "./$script_name" ]; then
         echo "Esecuzione di ${script_name} in corso..."
-        
-        # Esegue lo script esterno
-        bash "$script_name"
-        
-        # Controlla il codice di uscita
-        if [ $? -eq 0 ]; then
+
+        # Rende eseguibile se necessario
+        if [ ! -x "./$script_name" ]; then
+            echo "$script_name non è eseguibile. Aggiunta dei permessi di esecuzione..."
+            chmod +x "./$script_name"
+        fi
+
+        # Esegue lo script in modalità automatica
+        AUTOMATED=1 bash "./$script_name"
+        local exit_code=$?
+
+        if [ $exit_code -eq 0 ]; then
             echo "✓ ${script_name} completato con successo."
         else
-            echo "✗ ${script_name} terminato con errori (codice: $?)."
+            echo "✗ ${script_name} terminato con errori (codice: $exit_code)."
         fi
     else
         echo "✗ ERRORE: Il file ${script_name} non esiste o non è accessibile."
     fi
-    
+
     echo "=================================================="
     echo "<<< FINE ESECUZIONE SCRIPT: ${script_name}"
     echo "=================================================="
-    echo ""  # Linea vuota per migliorare la leggibilità
+    echo ""
 }
 
-# Script principale
+# ============= SCRIPT PRINCIPALE =============
+
 echo "==============================================="
 echo "AVVIO SCRIPT ESTERNI"
 echo "==============================================="
 echo ""
 
-# Esecuzione di tutti gli script specificati
-echo "Esecuzione di bottles-setup.sh..."
-executeAdditionalScript "bottles-setup.sh"
+# Elenco degli script da eseguire (modificabile)
+scripts_to_run=(
+    "bottles-setup.sh"
+    "fastfetch-setup.sh"
+    "gaming-setup.sh"
+    "global-theme.sh"
+    "terminus-tty.sh"
+)
 
-echo "Esecuzione di fastfetch-setup.sh..."
-executeAdditionalScript "fastfetch-setup.sh"
-
-echo "Esecuzione di gaming-setup.sh..."
-executeAdditionalScript "gaming-setup.sh"
-
-echo "Esecuzione di global-theme.sh..."
-executeAdditionalScript "global-theme.sh"
-
-echo "Esecuzione di terminus-tty.sh..."
-executeAdditionalScript "terminus-tty.sh"
+# Esecuzione in ciclo
+for script in "${scripts_to_run[@]}"; do
+    echo "Esecuzione di $script..."
+    executeAdditionalScript "$script"
+done
 
 echo "==============================================="
 echo "SCRIPT ESTERNI ESEGUITI CORRETTAMENTE"
 echo "==============================================="
-
 
 
 # ============= PULIZIA DEL SISTEMA ============= #
