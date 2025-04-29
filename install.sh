@@ -20,22 +20,27 @@ print_error() {
     echo -e "${RED}==> ERRORE:${RESET} $1"
 }
 
+# Funzione per verificare se un comando esiste
+command_exists() {
+    command -v "$1" &> /dev/null
+}
+
 # Aggiorna la lista dei mirror con gestione degli errori
 print_msg "Aggiornamento della lista dei mirror..."
 
 # Verifica se reflector è installato
-if ! command -v reflector &> /dev/null; then
+if ! command_exists reflector; then
     print_warn "reflector non trovato. Installazione in corso..."
     sudo pacman -S --noconfirm reflector
     
     # Verifica se l'installazione è riuscita
-    if ! command -v reflector &> /dev/null; then
+    if ! command_exists reflector; then
         print_error "Impossibile installare reflector. Saltando l'aggiornamento dei mirror."
     fi
 fi
 
 # Prova ad aggiornare i mirror con reflector (se installato)
-if command -v reflector &> /dev/null; then
+if command_exists reflector; then
     if ! sudo reflector --country 'Italy,Germany,France' --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist; then
         print_warn "Aggiornamento con reflector fallito. Tentativo con metodo alternativo..."
         
@@ -43,7 +48,7 @@ if command -v reflector &> /dev/null; then
         sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
         
         # Verifica se rankmirrors è disponibile (fa parte di pacman-contrib)
-        if command -v rankmirrors &> /dev/null; then
+        if command_exists rankmirrors; then
             print_msg "Utilizzo rankmirrors come alternativa..."
             # Ottieni i mirror dall'archivio Arch e ordinali
             curl -s "https://archlinux.org/mirrorlist/?country=IT&country=DE&country=FR&protocol=https&use_mirror_status=on" | \
@@ -73,7 +78,7 @@ print_msg "Aggiornando il sistema..."
 sudo pacman -Syu --noconfirm
 
 # Controlla e installa yay se necessario
-if ! command -v yay &> /dev/null; then
+if ! command_exists yay; then
     print_warn "yay non trovato. Installazione in corso..."
     sudo pacman -S --needed git base-devel --noconfirm
     git clone https://aur.archlinux.org/yay.git
@@ -153,7 +158,8 @@ yay -S --needed --noconfirm \
     onlyoffice-bin \
     jdk-openjdk \
     enpass-bin \
-    simple-scan \
+    simple-scan
+
 # ----- Grafica e design -----
 print_msg "Installazione software per grafica..."
 yay -S --needed --noconfirm \
@@ -174,12 +180,12 @@ yay -S --needed --noconfirm \
 print_msg "Configurazione Plexamp..."
 print_msg "Scaricando l'ultima versione di Plexamp AppImage..."
 # Aggiungi controllo per jq
-if ! command -v jq &> /dev/null; then
+if ! command_exists jq; then
     print_warn "jq non trovato. Installazione in corso..."
     sudo pacman -S --noconfirm jq
 fi
 
-if command -v jq &> /dev/null; then
+if command_exists jq; then
     LATEST_URL=$(curl -s https://api.github.com/repos/plexinc/plexamp/releases/latest | jq -r .assets[0].browser_download_url)
     if [ -n "$LATEST_URL" ] && [ "$LATEST_URL" != "null" ]; then
         curl -L -o "Plexamp.AppImage" "$LATEST_URL"
@@ -215,15 +221,15 @@ fi
 
 # Download del file
 print_msg "Download di MH Audio Converter..."
-if command -v wget &> /dev/null; then
+if command_exists wget; then
     wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL"
-elif command -v curl &> /dev/null; then
+elif command_exists curl; then
     curl -L "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
 else
     print_warn "È necessario installare wget o curl per scaricare MH Audio Converter."
     # Prova ad installare wget
     sudo pacman -S --noconfirm wget
-    if command -v wget &> /dev/null; then
+    if command_exists wget; then
         wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL"
     else
         print_error "Impossibile installare wget o curl."
@@ -310,11 +316,6 @@ print_msg "fancontrol-gui installato con successo!"
 
 # ============= INSTALLAZIONE MYBASH ============= #
 print_msg "Installazione di MyBash (shell personalizzata)..."
-
-# Funzione per verificare se un comando esiste
-command_exists() {
-    command -v "$1" &> /dev/null
-}
 
 # Definisci il tool di escalation (sudo è già disponibile in questo script)
 ESCALATION_TOOL="sudo"
@@ -415,6 +416,51 @@ ln -svf "$gitpath/starship.toml" "$HOME/.config/starship.toml" || {
 
 print_msg "MyBash installato con successo! Riavvia la shell per vedere i cambiamenti."
 
+# ============= INSTALLAZIONE AUTO-CPUFREQ ============= #
+print_msg "Installazione e configurazione di auto-cpufreq..."
+
+installAutoCpufreq() {
+    print_msg "Installazione di auto-cpufreq..."
+    
+    if ! command_exists auto-cpufreq; then
+        print_warn "auto-cpufreq non trovato. Installazione in corso..."
+        
+        # Verifica se powerprofilesctl è attivo e lo disabilita
+        if command_exists powerprofilesctl; then
+            print_warn "Disabilitazione del servizio powerprofilesctl..."
+            sudo systemctl disable --now power-profiles-daemon
+        fi
+        
+        # Installazione tramite AUR
+        yay -S --needed --noconfirm auto-cpufreq
+        sudo systemctl enable --now auto-cpufreq
+    else
+        print_msg "auto-cpufreq è già installato."
+    fi
+}
+
+configureAutoCpufreq() {
+    print_msg "Configurazione di auto-cpufreq in base al tipo di dispositivo..."
+    
+    if command_exists auto-cpufreq; then
+        # Verifica se il sistema è un laptop o un desktop controllando la presenza di batterie
+        if ls /sys/class/power_supply/BAT* >/dev/null 2>&1; then
+            print_msg "Sistema rilevato come laptop. Configurazione in modalità powersave..."
+            sudo auto-cpufreq --force powersave
+        else
+            print_msg "Sistema rilevato come desktop. Configurazione in modalità performance..."
+            sudo auto-cpufreq --force performance
+        fi
+        print_msg "auto-cpufreq configurato con successo!"
+    else
+        print_error "auto-cpufreq non è installato. Installazione fallita."
+    fi
+}
+
+# Esegui l'installazione e la configurazione di auto-cpufreq
+installAutoCpufreq
+configureAutoCpufreq
+
 # ============= PULIZIA DEL SISTEMA ============= #
 
 # Pulizia pacchetti orfani
@@ -432,7 +478,7 @@ sudo pacman -Sc --noconfirm
 
 # Pulizia cache yay
 print_msg "Pulizia cache yay..."
-if command -v yay &> /dev/null; then
+if command_exists yay; then
     yay -Sc --noconfirm
 fi
 
