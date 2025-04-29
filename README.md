@@ -29,7 +29,7 @@ Script di configurazione automatica per sistemi basati su Arch Linux (come Endea
 ## ⚡ Installazione rapida
 
 ```bash
-git clone https://github.com/tuousername/arch-setup.git
+git clone https://github.com/Magnetarman/linux-conf.git
 cd arch-setup
 chmod +x install.sh
 ./install.sh
