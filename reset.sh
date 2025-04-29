@@ -79,15 +79,15 @@ fi
 # Elenco specifico di pacchetti da rimuovere (basato sullo script di installazione)
 declare -a pacchetti_da_rimuovere=(
     # Utilità di sistema
-    "ffmpeg" "p7zip" "p7zip-gui" "baobab" "fastfetch-git" "libratbag" "hdsentinel"
+    "ffmpeg" "p7zip" "p7zip-gui" "baobab" "fastfetch-git" "libratbag" "hdsentinel" 
     "fancontrol-gui" "piper" "freefilesync-bin"
     
     # Browser e comunicazione
-    "firefox" "brave-bin" "discord" "telegram-desktop" "whatsapp-linux-desktop"
+    "firefox" "brave-bin" "discord" "telegram-desktop" "whatsapp-linux-desktop" 
     "thunderbird" "localsend-bin" "google-chrome" "microsoft-edge-stable" "microsoft-edge-dev" "microsoft-edge-beta"
     
     # Multimedia e intrattenimento
-    "vlc" "handbrake" "mkvtoolnix-gui" "freac" "mp3tag" "obs-studio"
+    "vlc" "handbrake" "mkvtoolnix-gui" "freac" "mp3tag" "obs-studio" 
     "youtube-to-mp3" "spotify" "plexamp-appimage" "reaper"
     
     # Download e condivisione
@@ -97,7 +97,7 @@ declare -a pacchetti_da_rimuovere=(
     "steam" "heroic-games-launcher-bin" "legendary"
     
     # Produttività
-    "obsidian" "visual-studio-code-bin" "github-desktop-bin" "onlyoffice-bin"
+    "obsidian" "visual-studio-code-bin" "github-desktop-bin" "onlyoffice-bin" 
     "jdk-openjdk" "enpass-bin" "skanpage" "python-pip" "tk"
     
     # Grafica
@@ -121,13 +121,13 @@ done
 
 # Rimuovere anche altri pacchetti installati dall'utente (non base)
 print_info "Rimozione di ulteriori pacchetti installati dall'utente..."
-pacchetti_utente=($(comm -23 <(pacman -Qeq | sort) <(pacman -Qgq base base-devel gnome | sort)))
+pacchetti_utente=$(comm -23 <(pacman -Qeq | sort) <(pacman -Qgq base base-devel gnome | sort))
 
 if [ -n "$pacchetti_utente" ]; then
     print_warning "Rimozione dei seguenti pacchetti installati dall'utente:"
-    echo "${pacchetti_utente[@]}"
+    echo "$pacchetti_utente"
     # Rimuovere i pacchetti installati dall'utente e le loro dipendenze non utilizzate
-    pacman -Rns ${pacchetti_utente[@]} --noconfirm
+    pacman -Rns $pacchetti_utente --noconfirm
     print_info "Pacchetti utente rimossi con successo."
 else
     print_info "Nessun pacchetto utente da rimuovere."
@@ -149,24 +149,23 @@ pacman -Scc --noconfirm
 
 # Parte 6: Ripristino delle configurazioni di GNOME e altre configurazioni utente
 print_info "Ripristino delle configurazioni di GNOME e altre configurazioni alle impostazioni di fabbrica..."
-
 # Ottenere l'elenco degli utenti non di sistema
 non_system_users=$(awk -F: '$3 >= 1000 && $3 < 65534 {print $1}' /etc/passwd)
 
 for user in $non_system_users; do
     user_home=$(getent passwd "$user" | cut -d: -f6)
-
+    
     # Verifica se l'utente esiste ed ha una home directory
     if [ -d "$user_home" ]; then
         print_info "Ripristino delle configurazioni per l'utente $user..."
-
+        
         # Crea un comando che verrà eseguito come l'utente specifico
         su - "$user" -c "
             # Reset completo delle impostazioni GNOME
             print_msg() { echo \"\$1\"; }
             echo 'Ripristino dconf...'
             dconf reset -f /
-
+            
             # Rimuovi file di configurazione e applicazioni
             echo 'Rimozione configurazioni specifiche...'
             rm -rf ~/.config/gnome-*
@@ -177,7 +176,7 @@ for user in $non_system_users; do
             rm -rf ~/.config/pulse
             rm -rf ~/.config/autostart/*
             rm -rf ~/.config/monitors.xml
-
+            
             # Rimuovi cache e dati delle applicazioni
             echo 'Rimozione cache e dati applicazioni...'
             rm -rf ~/.local/share/gnome-*
@@ -188,11 +187,11 @@ for user in $non_system_users; do
             rm -rf ~/.local/share/flatpak
             rm -rf ~/.local/state/*
             rm -rf ~/.cache/*
-
+            
             # Reset delle estensioni GNOME
             echo 'Rimozione estensioni GNOME...'
             rm -rf ~/.local/share/gnome-shell/extensions/*
-
+            
             # Reset delle configurazioni specifiche delle applicazioni
             echo 'Rimozione configurazioni applicazioni...'
             rm -rf ~/.mozilla
@@ -215,17 +214,17 @@ for user in $non_system_users; do
             rm -rf ~/.heroic
             rm -rf ~/.wine*
             rm -rf ~/.thunderbird
-
+            
             # Rimuovi Wine e prefissi Wine associati
             echo 'Rimozione prefissi Wine...'
             rm -rf ~/.wine*
             rm -rf ~/.wine_mhaudioconverter
-
+            
             # Rimuovi file di configurazione che possono essere stati creati dalle applicazioni
             rm -rf ~/Plexamp.AppImage
             rm -rf ~/.ollama
         "
-
+        
         print_info "Configurazioni ripristinate per l'utente $user."
     fi
 done
@@ -254,11 +253,11 @@ for user in $non_system_users; do
     user_home=$(getent passwd "$user" | cut -d: -f6)
     if [ -d "$user_home" ]; then
         print_info "Ripristino dei file di configurazione per l'utente $user..."
-
+        
         # Rimuovi tutti i file di configurazione personalizzati
         rm -f "$user_home/.bashrc" "$user_home/.bash_profile" "$user_home/.bash_logout"
         rm -f "$user_home/.profile" "$user_home/.zshrc" "$user_home/.zprofile"
-
+        
         # Copia i file dalla directory skel
         cp -f /etc/skel/.* "$user_home/" 2>/dev/null || true
         chown -R "$user":"$user" "$user_home"
@@ -267,13 +266,12 @@ done
 
 # Ripristina configurazioni sistema specifiche
 print_info "Ripristino delle configurazioni di sistema..."
-
 # Ripristina configurazioni di pacman
 cp -f /etc/pacman.conf.pacnew /etc/pacman.conf 2>/dev/null || true
 
 # Rimuovi eventuali repository AUR aggiunti
 sed -i '/^\[custom\]/,/^\[/ d' /etc/pacman.conf
-sed -i '/^Include = \/etc\/pacman\.d\/custom/d' /etc/pacman.conf
+sed -i '/^Include = \/etc\/pacman.d\/custom/d' /etc/pacman.conf
 
 # Parte 9: Ripristino dei servizi di sistema
 print_info "Ripristino dei servizi di sistema alle impostazioni predefinite..."
@@ -281,7 +279,6 @@ systemctl set-default graphical.target
 
 # Disabilita servizi non standard potenzialmente installati
 print_info "Disabilitazione di servizi non standard..."
-
 # Lista di servizi comuni che potrebbero essere stati installati
 declare -a servizi_da_disabilitare=(
     "plexamp" "ollama" "steam" "discord" "teamviewer" "rustdesk"
@@ -330,25 +327,21 @@ fi
 # Rimuovi eventuali riferimenti a Microsoft Edge in /etc
 find /etc -name "*microsoft*" -o -name "*edge*" | xargs rm -rf 2>/dev/null || true
 
-# Rimuovi fancontrol-gui e configurazioni correlate
-print_info "Rimozione di fancontrol-gui e configurazioni correlate..."
-pacman -Rns fancontrol-gui --noconfirm 2>/dev/null || true
-rm -rf /etc/fancontrol.conf 2>/dev/null || true # Rimuove la configurazione di fancontrol (se presente)
-rm -rf /usr/lib/systemd/system/fancontrol.service 2>/dev/null || true # Rimuove il servizio systemd (se presente)
-
 print_info "Ripristino del database pacman..."
 pacman -Syy
 
 print_info "Ripristino ai valori di fabbrica completato con successo!"
-echo -e "${BLUE}==========================================${NC}"
+echo -e "${BLUE}===========================================${NC}"
 echo -e "${GREEN}SISTEMA RIPRISTINATO ALLE IMPOSTAZIONI DI FABBRICA${NC}"
-echo -e "${BLUE}==========================================${NC}"
+echo -e "${BLUE}===========================================${NC}"
 print_info "Si consiglia di riavviare il sistema per applicare tutte le modifiche."
-read -p "Vuoi riavviare il sistema ora? (s/N): " reboot_confirm
-
-if [[ "$reboot_confirm" == [sS] ]]; then
-    print_info "Riavvio del sistema in corso..."
+read -p "Vuoi riavviare il sistema adesso? (s/N): " reboot_now
+if [[ "$reboot_now" == [sS] ]]; then
+    print_info "Il sistema verrà riavviato tra 5 secondi..."
+    sleep 5
     reboot
 else
-    print_info "Riavvio annullato. Ricordati di riavviare il sistema per applicare tutte le modifiche."
+    print_info "Ricordati di riavviare il sistema manualmente quando è conveniente."
 fi
+
+exit 0
