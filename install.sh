@@ -20,9 +20,53 @@ print_error() {
     echo -e "${RED}==> ERRORE:${RESET} $1"
 }
 
-# Aggiorna la lista dei mirror
+# Aggiorna la lista dei mirror con gestione degli errori
 print_msg "Aggiornamento della lista dei mirror..."
-sudo reflector --country 'Italy,Germany,France' --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
+
+# Verifica se reflector è installato
+if ! command -v reflector &> /dev/null; then
+    print_warn "reflector non trovato. Installazione in corso..."
+    sudo pacman -S --noconfirm reflector
+    
+    # Verifica se l'installazione è riuscita
+    if ! command -v reflector &> /dev/null; then
+        print_error "Impossibile installare reflector. Saltando l'aggiornamento dei mirror."
+    fi
+fi
+
+# Prova ad aggiornare i mirror con reflector (se installato)
+if command -v reflector &> /dev/null; then
+    if ! sudo reflector --country 'Italy,Germany,France' --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist; then
+        print_warn "Aggiornamento con reflector fallito. Tentativo con metodo alternativo..."
+        
+        # Backup del file mirrorlist originale
+        sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
+        
+        # Verifica se rankmirrors è disponibile (fa parte di pacman-contrib)
+        if command -v rankmirrors &> /dev/null; then
+            print_msg "Utilizzo rankmirrors come alternativa..."
+            # Ottieni i mirror dall'archivio Arch e ordinali
+            curl -s "https://archlinux.org/mirrorlist/?country=IT&country=DE&country=FR&protocol=https&use_mirror_status=on" | \
+            sed -e 's/^#Server/Server/' -e '/^#/d' | \
+            rankmirrors -n 10 - | \
+            sudo tee /etc/pacman.d/mirrorlist
+        else
+            print_warn "rankmirrors non disponibile. Utilizzo lista mirror predefinita..."
+            
+            # Crea una lista di mirror predefinita
+            echo "# Mirror predefiniti" | sudo tee /etc/pacman.d/mirrorlist
+            echo "Server = https://mirror.23media.com/archlinux/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
+            echo "Server = https://archlinux.mailtunnel.eu/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
+            echo "Server = https://mirrors.niyawe.de/archlinux/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
+            echo "Server = https://arch.yourlabs.org/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
+            echo "Server = https://mirror.cyberbits.eu/archlinux/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
+        fi
+    else
+        print_msg "Aggiornamento mirror completato con successo."
+    fi
+else
+    print_warn "reflector non disponibile. Saltando l'aggiornamento dei mirror."
+fi
 
 # Aggiorna il sistema
 print_msg "Aggiornando il sistema..."
@@ -130,17 +174,31 @@ yay -S --needed --noconfirm \
 # ----- Installazione specifica Plexamp -----
 print_msg "Configurazione Plexamp..."
 print_msg "Scaricando l'ultima versione di Plexamp AppImage..."
-LATEST_URL=$(curl -s https://api.github.com/repos/plexinc/plexamp/releases/latest | jq -r .assets[0].browser_download_url)
-curl -L -o "Plexamp.AppImage" "$LATEST_URL"
+# Aggiungi controllo per jq
+if ! command -v jq &> /dev/null; then
+    print_warn "jq non trovato. Installazione in corso..."
+    sudo pacman -S --noconfirm jq
+fi
 
-print_msg "Rendendo Plexamp AppImage eseguibile..."
-chmod +x Plexamp.AppImage
-
-print_msg "Integrando Plexamp nel sistema..."
-./Plexamp.AppImage --install
-
-print_msg "Avviando Plexamp..."
-./Plexamp.AppImage &
+if command -v jq &> /dev/null; then
+    LATEST_URL=$(curl -s https://api.github.com/repos/plexinc/plexamp/releases/latest | jq -r .assets[0].browser_download_url)
+    if [ -n "$LATEST_URL" ] && [ "$LATEST_URL" != "null" ]; then
+        curl -L -o "Plexamp.AppImage" "$LATEST_URL"
+        
+        print_msg "Rendendo Plexamp AppImage eseguibile..."
+        chmod +x Plexamp.AppImage
+        
+        print_msg "Integrando Plexamp nel sistema..."
+        ./Plexamp.AppImage --install
+        
+        print_msg "Avviando Plexamp..."
+        ./Plexamp.AppImage &
+    else
+        print_error "Impossibile ottenere l'URL di download per Plexamp."
+    fi
+else
+    print_error "jq non disponibile. Impossibile determinare l'URL di Plexamp."
+fi
 
 # ----- Installazione MH Audio Converter con Wine -----
 print_msg "Installazione MH Audio Converter con Wine..."
@@ -164,7 +222,13 @@ elif command -v curl &> /dev/null; then
     curl -L "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
 else
     print_warn "È necessario installare wget o curl per scaricare MH Audio Converter."
-    # Continua comunque con il resto dell'installazione
+    # Prova ad installare wget
+    sudo pacman -S --noconfirm wget
+    if command -v wget &> /dev/null; then
+        wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL"
+    else
+        print_error "Impossibile installare wget o curl."
+    fi
 fi
 
 # Controllo se il download è andato a buon fine
@@ -179,6 +243,22 @@ else
     if [ $? -eq 0 ]; then
         print_msg "Installazione di MH Audio Converter completata con successo!"
         print_msg "Per avviare MH Audio Converter, usa: WINEPREFIX=\"$WINE_PREFIX\" wine \"$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe\""
+        
+        # Crea un lanciatore desktop
+        DESKTOP_DIR="$HOME/.local/share/applications"
+        mkdir -p "$DESKTOP_DIR"
+        
+        cat > "$DESKTOP_DIR/mhaudioconverter.desktop" << EOF
+[Desktop Entry]
+Name=MH Audio Converter
+Comment=MediaHuman Audio Converter
+Exec=env WINEPREFIX="$WINE_PREFIX" wine "$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe"
+Icon=$WINE_PREFIX/drive_c/Program\ Files/MediaHuman/Audio\ Converter/MHAudioConverter.exe
+Type=Application
+Categories=AudioVideo;Audio;
+EOF
+        
+        print_msg "Lanciatore desktop creato per MH Audio Converter."
     else
         print_warn "Si è verificato un errore durante l'installazione di MH Audio Converter."
     fi
@@ -192,12 +272,16 @@ fi
 
 # Pulizia pacchetti orfani
 print_msg "Pulizia pacchetti inutilizzati (orphans)..."
-sudo pacman -Rns --noconfirm $(pacman -Qtdq) 2>/dev/null || echo "Nessun pacchetto orfano da rimuovere."
+ORPHANS=$(pacman -Qtdq)
+if [ -n "$ORPHANS" ]; then
+    sudo pacman -Rns --noconfirm $ORPHANS
+else
+    echo "Nessun pacchetto orfano da rimuovere."
+fi
 
 # Pulizia cache pacman
 print_msg "Pulizia cache pacman..."
-sudo paccache -r
-sudo paccache -rk1
+sudo pacman -Sc --noconfirm
 
 # Pulizia cache yay
 print_msg "Pulizia cache yay..."
