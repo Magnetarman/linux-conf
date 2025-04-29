@@ -97,7 +97,6 @@ yay -S --needed --noconfirm \
     fastfetch-git \
     libratbag \
     hdsentinel \
-    fancontrol-gui \
     piper \
     freefilesync-bin
 
@@ -267,6 +266,47 @@ EOF
     print_msg "Pulizia dei file temporanei di MH Audio Converter..."
     rm -f "$DOWNLOAD_PATH"
 fi
+
+# ----- Installazione specifica fancontrol-gui -----
+print_msg "Installazione fancontrol-gui..."
+
+# Scarica il PKGBUILD
+print_msg "Scaricando il PKGBUILD di fancontrol-gui..."
+yay -G fancontrol-gui
+if [ $? -ne 0 ]; then
+    print_error "Impossibile scaricare il PKGBUILD. Uscita."
+    exit 1
+fi
+
+# Entra nella directory
+cd fancontrol-gui
+if [ $? -ne 0 ]; then
+    print_error "Impossibile entrare nella directory fancontrol-gui. Uscita."
+    exit 1
+fi
+
+# Modifica il PKGBUILD
+print_msg "Modificando il PKGBUILD per forzare la versione minima di CMake..."
+sed -i 's/cmake /cmake -DCMAKE_POLICY_VERSION_MINIMUM=3.5 /' PKGBUILD
+if [ $? -ne 0 ]; then
+    print_error "Impossibile modificare il PKGBUILD. Uscita."
+    exit 1
+fi
+
+# Compila e installa il pacchetto
+print_msg "Compilando e installando fancontrol-gui..."
+makepkg -si --noconfirm
+if [ $? -ne 0 ]; then
+    print_error "Compilazione o installazione fallita. Controlla l'output di makepkg."
+    exit 1
+fi
+
+# Pulisci (opzionale)
+print_msg "Pulizia..."
+cd ..
+rm -rf fancontrol-gui
+
+print_msg "fancontrol-gui installato con successo!"
 
 # ============= PULIZIA DEL SISTEMA ============= #
 

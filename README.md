@@ -30,7 +30,7 @@ Script di configurazione automatica per sistemi basati su Arch Linux (come Endea
 
 ```bash
 git clone https://github.com/Magnetarman/linux-conf.git
-cd arch-setup
+cd linux-conf
 chmod +x install.sh
 ./install.sh
 ```
@@ -49,6 +49,8 @@ chmod +x install.sh
 
 - Firefox
 - Brave
+- Google Chrome
+- Microsoft Edge
 
 ### Produttività e Ufficio
 
@@ -64,7 +66,8 @@ chmod +x install.sh
 - Spotify
 - Reaper (DAW)
 - Handbrake
-- YouTube-to-MP3
+- Media Human YouTube-to-MP3
+- Media Human Audio Converter (via Wine)
 - MP3tag
 - MKVToolnix-GUI
 - Freac
@@ -98,7 +101,7 @@ chmod +x install.sh
 - Baobab (analizzatore di spazio su disco)
 - Fastfetch
 - HDSentinel
-- <del>Fancontrol-GUI</del> (Attualmente Rotto, in fase di Fix)
+- Fancontrol-GUI (tramite script addizionale)
 - Piper (configurazione mouse)
 - Skanpage (scansione)
 
