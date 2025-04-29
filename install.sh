@@ -490,12 +490,62 @@ executeAdditionalScript() {
     fi
 }
 
+# Funzione per eseguire script esterni con output verboso
+executeAdditionalScript() {
+    local script_name="$1"
+    
+    echo "=================================================="
+    echo ">>> AVVIO ESECUZIONE SCRIPT: ${script_name}"
+    echo "=================================================="
+    
+    # Controlla se lo script esiste prima di eseguirlo
+    if [ -f "$script_name" ]; then
+        echo "Esecuzione di ${script_name} in corso..."
+        
+        # Esegue lo script esterno
+        bash "$script_name"
+        
+        # Controlla il codice di uscita
+        if [ $? -eq 0 ]; then
+            echo "✓ ${script_name} completato con successo."
+        else
+            echo "✗ ${script_name} terminato con errori (codice: $?)."
+        fi
+    else
+        echo "✗ ERRORE: Il file ${script_name} non esiste o non è accessibile."
+    fi
+    
+    echo "=================================================="
+    echo "<<< FINE ESECUZIONE SCRIPT: ${script_name}"
+    echo "=================================================="
+    echo ""  # Linea vuota per migliorare la leggibilità
+}
+
+# Script principale
+echo "==============================================="
+echo "AVVIO SCRIPT ESTERNI"
+echo "==============================================="
+echo ""
+
 # Esecuzione di tutti gli script specificati
+echo "Esecuzione di bottles-setup.sh..."
 executeAdditionalScript "bottles-setup.sh"
+
+echo "Esecuzione di fastfetch-setup.sh..."
 executeAdditionalScript "fastfetch-setup.sh"
+
+echo "Esecuzione di gaming-setup.sh..."
 executeAdditionalScript "gaming-setup.sh"
+
+echo "Esecuzione di global-theme.sh..."
 executeAdditionalScript "global-theme.sh"
+
+echo "Esecuzione di terminus-tty.sh..."
 executeAdditionalScript "terminus-tty.sh"
+
+echo "==============================================="
+echo "SCRIPT ESTERNI ESEGUITI CORRETTAMENTE"
+echo "==============================================="
 
 
 
