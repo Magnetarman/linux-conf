@@ -13,8 +13,8 @@ Script di configurazione automatica per sistemi basati su Arch Linux (come Endea
 - ✅ Installazione di Plexamp come AppImage
 - ✅ Installazione di Ollama per AI locale
 - ✅ Installazione di una vasta gamma di applicazioni comuni:
-  - Browser (Firefox, Brave)
-  - Strumenti di produttività (VSCode, OnlyOffice)
+  - Browser (Firefox, Brave, Chrome, Edge)
+  - Strumenti di produttività (VSCode, OnlyOffice, Obsidian)
   - Media player e editor (VLC, Handbrake, Reaper, MKVToolnix)
   - Client di messaggistica (Discord, Telegram, WhatsApp)
   - Strumenti di sistema e utilità
@@ -156,4 +156,4 @@ Questo progetto è distribuito con licenza MIT. Vedi il file `LICENSE` per maggi
 
 ---
 
-❤️ Se trovi questo progetto utile, considera di lasciare una stella su GitHub!
+❤️ Se trovi questo progetto utile, considera di lasciare una stella
