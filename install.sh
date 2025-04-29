@@ -106,6 +106,7 @@ yay -S --needed --noconfirm \
     firefox \
     brave-bin \
     discord \
+    zoom \
     telegram-desktop \
     whatsapp-linux-desktop \
     thunderbird \
@@ -152,8 +153,7 @@ yay -S --needed --noconfirm \
     onlyoffice-bin \
     jdk-openjdk \
     enpass-bin \
-    skanpage
-
+    simple-scan \
 # ----- Grafica e design -----
 print_msg "Installazione software per grafica..."
 yay -S --needed --noconfirm \
@@ -307,6 +307,113 @@ cd ..
 rm -rf fancontrol-gui
 
 print_msg "fancontrol-gui installato con successo!"
+
+# ============= INSTALLAZIONE MYBASH ============= #
+print_msg "Installazione di MyBash (shell personalizzata)..."
+
+# Funzione per verificare se un comando esiste
+command_exists() {
+    command -v "$1" &> /dev/null
+}
+
+# Definisci il tool di escalation (sudo è già disponibile in questo script)
+ESCALATION_TOOL="sudo"
+PACKAGER="pacman"
+
+# Directory di destinazione per mybash
+gitpath="$HOME/.local/share/mybash"
+
+# Installazione delle dipendenze per mybash
+print_msg "Installazione delle dipendenze per MyBash..."
+if [ ! -f "/usr/share/bash-completion/bash_completion" ] || ! command_exists bash tar bat tree unzip fc-list git; then
+    print_warn "Installazione di bash e le sue dipendenze..."
+    $ESCALATION_TOOL $PACKAGER -S --needed --noconfirm bash bash-completion tar bat tree unzip fontconfig git
+fi
+
+# Clonazione del repository mybash
+print_msg "Clonazione del repository MyBash..."
+if [ -d "$gitpath" ]; then
+    print_warn "Directory MyBash esistente. Rimozione in corso..."
+    rm -rf "$gitpath"
+fi
+mkdir -p "$HOME/.local/share"
+cd "$HOME" && git clone https://github.com/ChrisTitusTech/mybash.git "$gitpath"
+
+# Installazione del font Nerd Font
+print_msg "Verifica e installazione del font MesloLGS Nerd Font..."
+FONT_NAME="MesloLGS Nerd Font Mono"
+if fc-list :family | grep -iq "$FONT_NAME"; then
+    print_msg "Font '$FONT_NAME' già installato."
+else
+    print_warn "Installazione del font '$FONT_NAME'..."
+    FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip"
+    FONT_DIR="$HOME/.local/share/fonts"
+    TEMP_DIR=$(mktemp -d)
+    curl -sSLo "$TEMP_DIR/${FONT_NAME}.zip" "$FONT_URL"
+    unzip "$TEMP_DIR/${FONT_NAME}.zip" -d "$TEMP_DIR"
+    mkdir -p "$FONT_DIR/$FONT_NAME"
+    mv "${TEMP_DIR}"/*.ttf "$FONT_DIR/$FONT_NAME"
+    fc-cache -fv
+    rm -rf "${TEMP_DIR}"
+    print_msg "Font '$FONT_NAME' installato con successo."
+fi
+
+# Installazione di Starship e FZF
+print_msg "Installazione di Starship (prompt personalizzato)..."
+if command_exists starship; then
+    print_msg "Starship già installato."
+else
+    if ! curl -sSL https://starship.rs/install.sh | $ESCALATION_TOOL sh; then
+        print_error "Si è verificato un errore durante l'installazione di Starship!"
+        exit 1
+    fi
+fi
+
+print_msg "Installazione di FZF (ricerca fuzzy)..."
+if command_exists fzf; then
+    print_msg "FZF già installato."
+else
+    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+    $ESCALATION_TOOL ~/.fzf/install
+fi
+
+# Installazione di Zoxide
+print_msg "Installazione di Zoxide (navigazione intelligente tra directory)..."
+if command_exists zoxide; then
+    print_msg "Zoxide già installato."
+else
+    if ! curl -sSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh; then
+        print_error "Si è verificato un errore durante l'installazione di Zoxide!"
+        exit 1
+    fi
+fi
+
+# Collegamento dei file di configurazione
+print_msg "Collegamento dei file di configurazione..."
+OLD_BASHRC="$HOME/.bashrc"
+if [ -e "$OLD_BASHRC" ] && [ ! -e "$HOME/.bashrc.bak" ]; then
+    print_warn "Spostamento del vecchio file di configurazione bash in $HOME/.bashrc.bak"
+    if ! mv "$OLD_BASHRC" "$HOME/.bashrc.bak"; then
+        print_error "Impossibile spostare il vecchio file di configurazione bash!"
+        exit 1
+    fi
+fi
+
+print_warn "Collegamento del nuovo file di configurazione bash..."
+ln -svf "$gitpath/.bashrc" "$HOME/.bashrc" || {
+    print_error "Impossibile creare il link simbolico per .bashrc"
+    exit 1
+}
+
+# Assicurati che la directory di configurazione esista
+mkdir -p "$HOME/.config"
+
+ln -svf "$gitpath/starship.toml" "$HOME/.config/starship.toml" || {
+    print_error "Impossibile creare il link simbolico per starship.toml"
+    exit 1
+}
+
+print_msg "MyBash installato con successo! Riavvia la shell per vedere i cambiamenti."
 
 # ============= PULIZIA DEL SISTEMA ============= #
 

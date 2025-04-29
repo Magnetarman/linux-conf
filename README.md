@@ -80,6 +80,7 @@ chmod +x install.sh
 - Telegram Desktop
 - WhatsApp Desktop
 - Thunderbird
+- Zoom App
 
 ### Gaming
 
@@ -95,6 +96,7 @@ chmod +x install.sh
 - LocalSend
 - Enpass
 - Wine
+- Bottles
 - qBittorrent
 - JDownloader2
 - FreeFileSync
@@ -103,7 +105,8 @@ chmod +x install.sh
 - HDSentinel
 - Fancontrol-GUI (tramite script addizionale)
 - Piper (configurazione mouse)
-- Skanpage (scansione)
+- Simplescan (scansione)
+- My Bash
 
 ### AI e ML
 
