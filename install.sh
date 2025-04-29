@@ -66,7 +66,9 @@ yay -S --needed --noconfirm \
     telegram-desktop \
     whatsapp-linux-desktop \
     thunderbird \
-    localsend-bin
+    localsend-bin \
+    google-chrome \
+    microsoft-edge-stable
 
 # ----- Multimedia e intrattenimento -----
 print_msg "Installazione applicazioni multimediali..."
@@ -139,6 +141,52 @@ print_msg "Integrando Plexamp nel sistema..."
 
 print_msg "Avviando Plexamp..."
 ./Plexamp.AppImage &
+
+# ----- Installazione MH Audio Converter con Wine -----
+print_msg "Installazione MH Audio Converter con Wine..."
+
+# Definizione delle variabili
+DOWNLOAD_URL="https://www.mediahuman.com/download/MHAudioConverter-x64.exe"
+DOWNLOAD_PATH="/tmp/MHAudioConverter-x64.exe"
+WINE_PREFIX="$HOME/.wine_mhaudioconverter"
+
+# Creazione della directory per il prefisso Wine (se non esiste)
+if [ ! -d "$WINE_PREFIX" ]; then
+    print_msg "Creazione di un nuovo prefisso Wine in $WINE_PREFIX..."
+    mkdir -p "$WINE_PREFIX"
+fi
+
+# Download del file
+print_msg "Download di MH Audio Converter..."
+if command -v wget &> /dev/null; then
+    wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL"
+elif command -v curl &> /dev/null; then
+    curl -L "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
+else
+    print_warn "È necessario installare wget o curl per scaricare MH Audio Converter."
+    # Continua comunque con il resto dell'installazione
+fi
+
+# Controllo se il download è andato a buon fine
+if [ ! -f "$DOWNLOAD_PATH" ]; then
+    print_warn "Download di MH Audio Converter fallito. Verificare la connessione internet."
+else
+    # Esecuzione dell'installer con Wine
+    print_msg "Installazione di MH Audio Converter con Wine..."
+    WINEPREFIX="$WINE_PREFIX" wine "$DOWNLOAD_PATH"
+
+    # Controllo del risultato dell'installazione
+    if [ $? -eq 0 ]; then
+        print_msg "Installazione di MH Audio Converter completata con successo!"
+        print_msg "Per avviare MH Audio Converter, usa: WINEPREFIX=\"$WINE_PREFIX\" wine \"$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe\""
+    else
+        print_warn "Si è verificato un errore durante l'installazione di MH Audio Converter."
+    fi
+
+    # Pulizia
+    print_msg "Pulizia dei file temporanei di MH Audio Converter..."
+    rm -f "$DOWNLOAD_PATH"
+fi
 
 # ============= PULIZIA DEL SISTEMA ============= #
 
