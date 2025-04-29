@@ -494,28 +494,28 @@ configureAutoCpufreq() {
 installAutoCpufreq
 configureAutoCpufreq
 
-#!/bin/bash
+# ============= CALCOLO DELLA DIRECTORY DELLO SCRIPT PRINCIPALE =============
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ============= FUNZIONI DI SUPPORTO =============
 
 executeAdditionalScript() {
     local script_name="$1"
+    local script_path="${SCRIPT_DIR}/${script_name}"
 
     echo "=================================================="
     echo ">>> AVVIO ESECUZIONE SCRIPT: ${script_name}"
     echo "=================================================="
 
-    if [ -f "./$script_name" ]; then
+    if [ -f "$script_path" ]; then
         echo "Esecuzione di ${script_name} in corso..."
 
-        # Rende eseguibile se necessario
-        if [ ! -x "./$script_name" ]; then
+        if [ ! -x "$script_path" ]; then
             echo "$script_name non è eseguibile. Aggiunta dei permessi di esecuzione..."
-            chmod +x "./$script_name"
+            chmod +x "$script_path"
         fi
 
-        # Esegue lo script in modalità automatica
-        AUTOMATED=1 bash "./$script_name"
+        AUTOMATED=1 bash "$script_path"
         local exit_code=$?
 
         if [ $exit_code -eq 0 ]; then
@@ -540,7 +540,6 @@ echo "AVVIO SCRIPT ESTERNI"
 echo "==============================================="
 echo ""
 
-# Elenco degli script da eseguire (modificabile)
 scripts_to_run=(
     "bottles-setup.sh"
     "fastfetch-setup.sh"
@@ -549,7 +548,6 @@ scripts_to_run=(
     "terminus-tty.sh"
 )
 
-# Esecuzione in ciclo
 for script in "${scripts_to_run[@]}"; do
     echo "Esecuzione di $script..."
     executeAdditionalScript "$script"
@@ -558,7 +556,6 @@ done
 echo "==============================================="
 echo "SCRIPT ESTERNI ESEGUITI CORRETTAMENTE"
 echo "==============================================="
-
 
 # ============= PULIZIA DEL SISTEMA ============= #
 
