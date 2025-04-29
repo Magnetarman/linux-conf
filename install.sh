@@ -498,63 +498,70 @@ configureAutoCpufreq
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ============= FUNZIONI DI SUPPORTO =============
-
-executeAdditionalScript() {
-    local script_name="$1"
-    local script_path="${SCRIPT_DIR}/${script_name}"
-
-    echo "=================================================="
-    echo ">>> AVVIO ESECUZIONE SCRIPT: ${script_name}"
-    echo "=================================================="
-
-    if [ -f "$script_path" ]; then
-        echo "Esecuzione di ${script_name} in corso..."
-
-        if [ ! -x "$script_path" ]; then
-            echo "$script_name non è eseguibile. Aggiunta dei permessi di esecuzione..."
-            chmod +x "$script_path"
-        fi
-
-        AUTOMATED=1 bash "$script_path"
-        local exit_code=$?
-
-        if [ $exit_code -eq 0 ]; then
-            echo "✓ ${script_name} completato con successo."
-        else
-            echo "✗ ${script_name} terminato con errori (codice: $exit_code)."
-        fi
-    else
-        echo "✗ ERRORE: Il file ${script_name} non esiste o non è accessibile."
-    fi
-
-    echo "=================================================="
-    echo "<<< FINE ESECUZIONE SCRIPT: ${script_name}"
-    echo "=================================================="
-    echo ""
-}
-
-# ============= SCRIPT PRINCIPALE =============
-
+# ============= ESECUZIONE SCRIPT ESTERNI =============
 echo "==============================================="
 echo "AVVIO SCRIPT ESTERNI"
 echo "==============================================="
 echo ""
 
-scripts_to_run=(
-    "bottles-setup.sh"
-    "fastfetch-setup.sh"
-    "gaming-setup.sh"
-    "global-theme.sh"
-    "terminus-tty.sh"
-)
+# Script da eseguire
+echo "Tentativo di esecuzione di bottles-setup.sh..."
+if [ -f "bottles-setup.sh" ]; then
+    echo "File bottles-setup.sh trovato. Esecuzione..."
+    chmod +x bottles-setup.sh
+    AUTOMATED=1 bash bottles-setup.sh
+    echo "Esecuzione di bottles-setup.sh completata."
+else
+    echo "File bottles-setup.sh non trovato nella directory corrente."
+fi
+echo ""
 
-for script in "${scripts_to_run[@]}"; do
-    echo "Esecuzione di $script..."
-    executeAdditionalScript "$script"
-done
+echo "Tentativo di esecuzione di fastfetch-setup.sh..."
+if [ -f "fastfetch-setup.sh" ]; then
+    echo "File fastfetch-setup.sh trovato. Esecuzione..."
+    chmod +x fastfetch-setup.sh
+    AUTOMATED=1 bash fastfetch-setup.sh
+    echo "Esecuzione di fastfetch-setup.sh completata."
+else
+    echo "File fastfetch-setup.sh non trovato nella directory corrente."
+fi
+echo ""
+
+echo "Tentativo di esecuzione di gaming-setup.sh..."
+if [ -f "gaming-setup.sh" ]; then
+    echo "File gaming-setup.sh trovato. Esecuzione..."
+    chmod +x gaming-setup.sh
+    AUTOMATED=1 bash gaming-setup.sh
+    echo "Esecuzione di gaming-setup.sh completata."
+else
+    echo "File gaming-setup.sh non trovato nella directory corrente."
+fi
+echo ""
+
+echo "Tentativo di esecuzione di global-theme.sh..."
+if [ -f "global-theme.sh" ]; then
+    echo "File global-theme.sh trovato. Esecuzione..."
+    chmod +x global-theme.sh
+    AUTOMATED=1 bash global-theme.sh
+    echo "Esecuzione di global-theme.sh completata."
+else
+    echo "File global-theme.sh non trovato nella directory corrente."
+fi
+echo ""
+
+echo "Tentativo di esecuzione di terminus-tty.sh..."
+if [ -f "terminus-tty.sh" ]; then
+    echo "File terminus-tty.sh trovato. Esecuzione..."
+    chmod +x terminus-tty.sh
+    AUTOMATED=1 bash terminus-tty.sh
+    echo "Esecuzione di terminus-tty.sh completata."
+else
+    echo "File terminus-tty.sh non trovato nella directory corrente."
+fi
+echo ""
 
 echo "==============================================="
-echo "SCRIPT ESTERNI ESEGUITI CORRETTAMENTE"
+echo "ESECUZIONE SCRIPT ESTERNI COMPLETATA"
 echo "==============================================="
 
 # ============= PULIZIA DEL SISTEMA ============= #
