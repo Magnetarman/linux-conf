@@ -167,45 +167,16 @@ yay -S --needed --noconfirm \
     occt
 
 # ----- AI e machine learning -----
-print_msg "Installazione di Ollama..."
+print_msg "Installazione di chatbox (GUI per Ollama)..."
 yay -S --needed --noconfirm \
-    ollama-bin
+    chatbox-ce-bin
 
 # ----- Software di compatibilità -----
 print_msg "Installazione strumenti di compatibilità..."
 yay -S --needed --noconfirm \
     wine
 
-# ----- Installazione specifica Plexamp -----
-print_msg "Configurazione Plexamp..."
-print_msg "Scaricando l'ultima versione di Plexamp AppImage..."
-# Aggiungi controllo per jq
-if ! command_exists jq; then
-    print_warn "jq non trovato. Installazione in corso..."
-    sudo pacman -S --noconfirm jq
-fi
-
-if command_exists jq; then
-    LATEST_URL=$(curl -s https://api.github.com/repos/plexinc/plexamp/releases/latest | jq -r .assets[0].browser_download_url)
-    if [ -n "$LATEST_URL" ] && [ "$LATEST_URL" != "null" ]; then
-        curl -L -o "Plexamp.AppImage" "$LATEST_URL"
-        
-        print_msg "Rendendo Plexamp AppImage eseguibile..."
-        chmod +x Plexamp.AppImage
-        
-        print_msg "Integrando Plexamp nel sistema..."
-        ./Plexamp.AppImage --install
-        
-        print_msg "Avviando Plexamp..."
-        ./Plexamp.AppImage &
-    else
-        print_error "Impossibile ottenere l'URL di download per Plexamp."
-    fi
-else
-    print_error "jq non disponibile. Impossibile determinare l'URL di Plexamp."
-fi
-
-# ----- Installazione MH Audio Converter con Wine -----
+# =============  Installazione MH Audio Converter con Wine  ============= #
 print_msg "Installazione MH Audio Converter con Wine..."
 
 # Definizione delle variabili
@@ -273,7 +244,7 @@ EOF
     rm -f "$DOWNLOAD_PATH"
 fi
 
-# ----- Installazione specifica fancontrol-gui -----
+# =============  Installazione fancontrol-gui  ============= #
 print_msg "Installazione fancontrol-gui..."
 
 # Scarica il PKGBUILD
@@ -313,6 +284,65 @@ cd ..
 rm -rf fancontrol-gui
 
 print_msg "fancontrol-gui installato con successo!"
+
+# ============= Installazione Ollama ============= #
+echo "Scarico lo script di installazione di Ollama..."
+curl -fsSL https://ollama.com/install.sh -o install_ollama.sh
+
+echo "Eseguo lo script..."
+bash install_ollama.sh
+
+# Funzione per stampare con colore
+print_msg() {
+    echo -e "\033[1;32m$1\033[0m"
+}
+
+# Lista dei modelli disponibili
+MODELS=("llama3" "mistral" "gemma" "codellama" "llava" "phi")
+
+# Controllo se ollama è già installato
+if ! command -v ollama &> /dev/null; then
+    print_msg "Ollama non è installato. Procedo con l'installazione..."
+    if command -v yay &> /dev/null; then
+        yay -S ollama-bin --noconfirm
+    elif command -v paru &> /dev/null; then
+        paru -S ollama-bin --noconfirm
+    else
+        echo "Errore: è richiesto yay o paru per installare ollama da AUR."
+        exit 1
+    fi
+else
+    print_msg "Ollama è già installato."
+fi
+
+# Prompt di selezione modello
+echo "Scegli un modello da installare:"
+select MODEL in "${MODELS[@]}"; do
+    if [[ -n "$MODEL" ]]; then
+        print_msg "Hai selezionato il modello: $MODEL"
+        break
+    else
+        echo "Selezione non valida."
+    fi
+done
+
+# Avvio del servizio ollama
+print_msg "Avvio del servizio ollama..."
+sudo systemctl enable --now ollama.service
+
+# Verifica se il servizio è attivo
+if systemctl is-active --quiet ollama; then
+    print_msg "Servizio ollama attivo."
+else
+    echo "Errore nell'avvio del servizio ollama."
+    exit 1
+fi
+
+# Scarica ed esegue il modello selezionato
+print_msg "Scarico e configuro il modello $MODEL..."
+ollama run "$MODEL"
+
+print_msg "Tutto pronto! Ollama è in esecuzione con il modello $MODEL."
 
 # ============= INSTALLAZIONE MYBASH ============= #
 print_msg "Installazione di MyBash (shell personalizzata)..."
@@ -576,5 +606,18 @@ sudo rm -rf /var/tmp/*
 sudo journalctl --vacuum-time=7d
 
 print_msg "Aggiornamento e pulizia completati!"
-
 echo -e "${BLUE}Sistema Pronto !!!${RESET}"
+
+# Chiedi se riavviare il sistema
+read -rp "Vuoi riavviare il sistema? (y/n): " REBOOT_CHOICE
+if [[ "$REBOOT_CHOICE" =~ ^[Yy]$ ]]; then
+    echo "Riavvio in 10 secondi. Premi Ctrl+C per annullare."
+    for i in {10..1}; do
+        echo -ne "$i...\r"
+        sleep 1
+    done
+    echo "Riavvio in corso..."
+    sudo reboot
+else
+    echo "Riavvio annullato."
+fi

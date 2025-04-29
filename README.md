@@ -12,6 +12,7 @@ Script di configurazione automatica per sistemi basati su Arch Linux (come Endea
 - ✅ Installazione e configurazione di yay (gestore pacchetti AUR)
 - ✅ Installazione di Plexamp come AppImage
 - ✅ Installazione di Ollama per AI locale
+- ✅ Installazione di Chatbox Community edition per interagire con ollama
 - ✅ Installazione di una vasta gamma di applicazioni comuni:
   - Browser (Firefox, Brave, Chrome, Edge)
   - Strumenti di produttività (VSCode, OnlyOffice, Obsidian)
