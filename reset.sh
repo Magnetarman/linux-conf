@@ -52,6 +52,30 @@ pacman -Qe > /tmp/pacchetti_espliciti.txt
 # Parte 3: Rimuovere specificamente tutte le app installate dallo script di installazione
 print_info "Rimozione delle applicazioni installate dallo script di installazione..."
 
+# Rimozione specifica di Microsoft Edge con metodo alternativo
+print_info "Rimozione di Microsoft Edge con metodo specifico..."
+if [ -f "/opt/microsoft/msedge/microsoft-edge" ] || [ -d "/opt/microsoft/msedge" ]; then
+    print_info "Microsoft Edge trovato, rimozione in corso..."
+    # Rimuovi il pacchetto ufficiale se installato
+    pacman -Rns microsoft-edge-stable --noconfirm 2>/dev/null || true
+    pacman -Rns microsoft-edge-dev --noconfirm 2>/dev/null || true
+    pacman -Rns microsoft-edge-beta --noconfirm 2>/dev/null || true
+    
+    # Se ancora presente, forza la rimozione della directory
+    if [ -d "/opt/microsoft/msedge" ]; then
+        print_info "Rimozione forzata della directory di Microsoft Edge..."
+        rm -rf /opt/microsoft/msedge
+    fi
+    
+    # Rimuovi eventuali file .desktop
+    rm -f /usr/share/applications/microsoft-edge*.desktop 2>/dev/null || true
+    
+    # Rimuovi i link simbolici
+    rm -f /usr/bin/microsoft-edge* 2>/dev/null || true
+    
+    print_info "Microsoft Edge rimosso con successo."
+fi
+
 # Elenco specifico di pacchetti da rimuovere (basato sullo script di installazione)
 declare -a pacchetti_da_rimuovere=(
     # Utilità di sistema
@@ -60,7 +84,7 @@ declare -a pacchetti_da_rimuovere=(
     
     # Browser e comunicazione
     "firefox" "brave-bin" "discord" "telegram-desktop" "whatsapp-linux-desktop" 
-    "thunderbird" "localsend-bin" "google-chrome" "microsoft-edge-stable"
+    "thunderbird" "localsend-bin" "google-chrome" "microsoft-edge-stable" "microsoft-edge-dev" "microsoft-edge-beta"
     
     # Multimedia e intrattenimento
     "vlc" "handbrake" "mkvtoolnix-gui" "freac" "mp3tag" "obs-studio" 
@@ -173,7 +197,12 @@ for user in $non_system_users; do
             rm -rf ~/.mozilla
             rm -rf ~/.config/chromium
             rm -rf ~/.config/google-chrome
+            # Rimozione completa delle configurazioni di Microsoft Edge
             rm -rf ~/.config/Microsoft
+            rm -rf ~/.config/microsoft-edge*
+            rm -rf ~/.config/microsoft-edge-dev
+            rm -rf ~/.config/microsoft-edge-beta
+            rm -rf ~/.cache/microsoft-edge*
             rm -rf ~/.config/discord
             rm -rf ~/.config/Code
             rm -rf ~/.config/spotify
@@ -285,6 +314,18 @@ print_info "Rimozione di eventuali helper AUR residui..."
 rm -rf /usr/bin/yay 2>/dev/null || true
 rm -rf /usr/bin/paru 2>/dev/null || true
 pacman -Rns yay yay-bin yay-git paru paru-bin --noconfirm 2>/dev/null || true
+
+# Verifica finale per Microsoft Edge
+print_info "Verifica finale per Microsoft Edge..."
+if [ -f "/opt/microsoft/msedge/microsoft-edge" ] || [ -d "/opt/microsoft/msedge" ]; then
+    print_warning "Microsoft Edge è ancora presente nel sistema. Tentativo di rimozione forzata..."
+    rm -rf /opt/microsoft
+    # Rimuovi eventuali pacchetti orfani che potrebbero contenere componenti di Edge
+    pacman -Rns $(pacman -Qtdq) --noconfirm 2>/dev/null || true
+fi
+
+# Rimuovi eventuali riferimenti a Microsoft Edge in /etc
+find /etc -name "*microsoft*" -o -name "*edge*" | xargs rm -rf 2>/dev/null || true
 
 print_info "Ripristino del database pacman..."
 pacman -Syy
