@@ -41,10 +41,92 @@ else
     print_msg "yay già installato."
 fi
 
-# Aggiungi il repository di Plexamp e installa l'app
-print_msg "Installazione Plexamp tramite AUR..."
-yay -S --noconfirm plexamp-appimage
+# ============= INSTALLAZIONE PACCHETTI CATEGORIZZATI ============= #
 
+# ----- Pacchetti di sistema e utilità -----
+print_msg "Installazione utilità di sistema..."
+sudo pacman -S --noconfirm ffmpeg
+yay -S --needed --noconfirm \
+    p7zip \
+    p7zip-gui \
+    baobab \
+    fastfetch-git \
+    libratbag \
+    hdsentinel \
+    fancontrol-gui \
+    piper \
+    freefilesync-bin
+
+# ----- Browser web e comunicazione -----
+print_msg "Installazione browser e app di comunicazione..."
+yay -S --needed --noconfirm \
+    firefox \
+    brave-bin \
+    discord \
+    telegram-desktop \
+    whatsapp-linux-desktop \
+    thunderbird \
+    localsend-bin
+
+# ----- Multimedia e intrattenimento -----
+print_msg "Installazione applicazioni multimediali..."
+yay -S --needed --noconfirm \
+    vlc \
+    handbrake \
+    mkvtoolnix-gui \
+    freac \
+    mp3tag \
+    obs-studio \
+    youtube-to-mp3 \
+    spotify \
+    plexamp-appimage \
+    reaper
+
+# ----- Download e condivisione file -----
+print_msg "Installazione app per download e condivisione file..."
+yay -S --needed --noconfirm \
+    qbittorrent \
+    jdownloader2 \
+    winscp \
+    rustdesk-bin
+
+# ----- Giochi e piattaforme gaming -----
+print_msg "Installazione piattaforme di gaming..."
+yay -S --needed --noconfirm \
+    steam \
+    heroic-games-launcher-bin \
+    legendary
+
+# ----- Produttività e strumenti di lavoro -----
+print_msg "Installazione strumenti di produttività..."
+sudo pacman -S --noconfirm python-pip tk
+yay -S --needed --noconfirm \
+    obsidian \
+    visual-studio-code-bin \
+    github-desktop-bin \
+    onlyoffice-bin \
+    jdk-openjdk \
+    enpass-bin \
+    skanpage
+
+# ----- Grafica e design -----
+print_msg "Installazione software per grafica..."
+yay -S --needed --noconfirm \
+    upscayl-bin \
+    occt
+
+# ----- AI e machine learning -----
+print_msg "Installazione di Ollama..."
+yay -S --needed --noconfirm \
+    ollama-bin
+
+# ----- Software di compatibilità -----
+print_msg "Installazione strumenti di compatibilità..."
+yay -S --needed --noconfirm \
+    wine
+
+# ----- Installazione specifica Plexamp -----
+print_msg "Configurazione Plexamp..."
 print_msg "Scaricando l'ultima versione di Plexamp AppImage..."
 LATEST_URL=$(curl -s https://api.github.com/repos/plexinc/plexamp/releases/latest | jq -r .assets[0].browser_download_url)
 curl -L -o "Plexamp.AppImage" "$LATEST_URL"
@@ -58,61 +140,7 @@ print_msg "Integrando Plexamp nel sistema..."
 print_msg "Avviando Plexamp..."
 ./Plexamp.AppImage &
 
-# Installa Python, ffmpeg, pip e tk
-print_msg "Installazione di Python e pacchetti di supporto..."
-sudo pacman -S --noconfirm ffmpeg python-pip tk
-
-# Installa Ollama
-print_msg "Installazione di Ollama..."
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Installa pacchetti vari tramite yay
-print_msg "Installazione di pacchetti AUR selezionati..."
-yay -S --needed --noconfirm \
-    p7zip \
-    p7zip-gui \
-    brave-bin \
-    piper \
-    libratbag \
-    hdsentinel \
-    localsend-bin \
-    handbrake \
-    skanpage \
-    discord \
-    enpass-bin \
-    legendary \
-    fancontrol-gui \
-    freac \
-    heroic-games-launcher-bin \
-    jdownloader2 \
-    localsend-bin \
-    obs-studio \
-    obsidian \
-    occt \
-    ollama-bin \
-    qbittorrent \
-    reaper \
-    rustdesk-bin \
-    winscp \
-    steam \
-    telegram-desktop \
-    whatsapp-linux-desktop \
-    upscayl-bin \
-    vlc \
-    youtube-to-mp3 \
-    spotify \
-    visual-studio-code-bin \
-    mkvtoolnix-gui \
-    firefox \
-    wine \
-    thunderbird \
-    mp3tag \
-    freefilesync-bin \
-    github-desktop-bin \
-    baobab \
-    fastfetch-git \
-    onlyoffice-bin \
-    jdk-openjdk
+# ============= PULIZIA DEL SISTEMA ============= #
 
 # Pulizia pacchetti orfani
 print_msg "Pulizia pacchetti inutilizzati (orphans)..."
