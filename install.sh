@@ -461,6 +461,41 @@ configureAutoCpufreq() {
 installAutoCpufreq
 configureAutoCpufreq
 
+# ============= ESECUZIONE SCRIPT AGGIUNTIVI ============= #
+print_msg "Esecuzione degli script aggiuntivi di configurazione..."
+
+executeAdditionalScript() {
+    local script_name="$1"
+    
+    if [ -f "./$script_name" ]; then
+        print_msg "Esecuzione di $script_name..."
+        
+        # Verifica che lo script sia eseguibile
+        if [ ! -x "./$script_name" ]; then
+            print_warn "$script_name non è eseguibile. Aggiunta dei permessi di esecuzione..."
+            chmod +x "./$script_name"
+        fi
+        
+        # Esecuzione dello script in modalità automatica
+        # Utilizzo di AUTOMATED=1 come variabile d'ambiente per indicare modalità automatica
+        AUTOMATED=1 bash "./$script_name"
+        
+        if [ $? -eq 0 ]; then
+            print_msg "$script_name eseguito con successo."
+        else
+            print_error "$script_name ha riscontrato errori durante l'esecuzione."
+        fi
+    else
+        print_warn "$script_name non trovato nella directory corrente. Script saltato."
+    fi
+}
+
+# Esecuzione di tutti gli script specificati
+executeAdditionalScript "global-theme.sh"
+executeAdditionalScript "gaming-setup.sh"
+executeAdditionalScript "terminus-tty.sh"
+executeAdditionalScript "bottles-setup.sh"
+
 # ============= PULIZIA DEL SISTEMA ============= #
 
 # Pulizia pacchetti orfani
