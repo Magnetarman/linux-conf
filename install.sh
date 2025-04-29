@@ -491,10 +491,13 @@ executeAdditionalScript() {
 }
 
 # Esecuzione di tutti gli script specificati
-executeAdditionalScript "global-theme.sh"
-executeAdditionalScript "gaming-setup.sh"
-executeAdditionalScript "terminus-tty.sh"
 executeAdditionalScript "bottles-setup.sh"
+executeAdditionalScript "fastfetch-setup.sh"
+executeAdditionalScript "gaming-setup.sh"
+executeAdditionalScript "global-theme.sh"
+executeAdditionalScript "terminus-tty.sh"
+
+
 
 # ============= PULIZIA DEL SISTEMA ============= #
 

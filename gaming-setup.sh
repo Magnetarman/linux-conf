@@ -2,7 +2,17 @@
 
 # shellcheck disable=SC2086
 
-. ../common-script.sh
+# Ottiene la directory in cui si trova questo script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Controlla se common-script.sh esiste nella stessa directory
+if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
+    echo "common-script.sh non trovato in $SCRIPT_DIR"
+    exit 1
+fi
+
+# Include common-script.sh dalla stessa directory
+. "$SCRIPT_DIR/common-script.sh"
 
 installDepend() {
     DEPENDENCIES='wine dbus git'

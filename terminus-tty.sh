@@ -1,6 +1,17 @@
 #!/bin/sh -e
+# Ottiene la directory in cui si trova questo script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-. ../common-script.sh
+# Controlla se common-script.sh esiste nella stessa directory
+if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
+    echo "common-script.sh non trovato in $SCRIPT_DIR"
+    exit 1
+fi
+
+# Include common-script.sh dalla stessa directory
+. "$SCRIPT_DIR/common-script.sh"
+
+
 InstallTermiusFonts() {
     if [ ! -f "/usr/share/kbd/consolefonts/ter-c18b.psf.gz" ] && 
        [ ! -f "/usr/share/consolefonts/Uni3-TerminusBold18x10.psf.gz" ] && 
