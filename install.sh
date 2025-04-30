@@ -7,9 +7,18 @@ YELLOW="\e[33m"
 BLUE="\e[34m"
 RESET="\e[0m"
 
-# Funzione per verificare l'ambiente
+# Funzioni di stampa
+print_msg() { echo -e "${GREEN}==>${RESET} $1"; }
+print_warn() { echo -e "${YELLOW}==> ATTENZIONE:${RESET} $1"; }
+print_error() { echo -e "${RED}==> ERRORE:${RESET} $1"; }
+
+# Verifica se un comando esiste
+command_exists() {
+    command -v "$1" &> /dev/null
+}
+
+# Rileva sistema operativo e gestore pacchetti
 checkEnv() {
-    # Determina il sistema operativo e il gestore di pacchetti
     if command_exists pacman; then
         PACKAGER="pacman"
         DTYPE="arch"
@@ -26,14 +35,13 @@ checkEnv() {
         PACKAGER="zypper"
         DTYPE="suse"
     else
-        print_error "Sistema operativo non supportato"
+        print_error "Sistema operativo non supportato."
         exit 1
     fi
-    
     print_msg "Sistema rilevato: $DTYPE con gestore pacchetti $PACKAGER"
 }
 
-# Funzione per verificare lo strumento di escalation
+# Verifica tool per privilegi di root
 checkEscalationTool() {
     if command_exists sudo; then
         ESCALATION_TOOL="sudo"
@@ -43,131 +51,51 @@ checkEscalationTool() {
     fi
 }
 
-# Funzione per verificare Flatpak
+# Installa e configura Flatpak + Flathub
 checkFlatpak() {
     if ! command_exists flatpak; then
         print_warn "Flatpak non è installato. Installazione in corso..."
-        "$ESCALATION_TOOL" "$PACKAGER" install -y flatpak
-        if ! command_exists flatpak; then
+        $ESCALATION_TOOL $PACKAGER install -y flatpak || {
             print_error "Impossibile installare Flatpak. Installalo manualmente."
             exit 1
-        fi
+        }
     fi
-    
-    # Aggiungi il repositorio Flathub se non è già configurato
-    if ! flatpak remotes | grep -q "flathub"; then
-        "$ESCALATION_TOOL" flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
+    if ! flatpak remotes | grep -q flathub; then
+        print_msg "Configurazione del repository Flathub..."
+        $ESCALATION_TOOL flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
     fi
 }
 
-# Funzione per verificare AUR Helper
+# Installa yay (solo per Arch)
 checkAURHelper() {
     if command_exists yay; then
         AUR_HELPER="yay"
-    elif command_exists paru; then
-        AUR_HELPER="paru"
-    else
-        if [ "$DTYPE" = "arch" ]; then
-            print_warn "AUR helper non trovato. Installazione di yay in corso..."
-            "$ESCALATION_TOOL" "$PACKAGER" -S --needed --noconfirm git base-devel
-            git clone https://aur.archlinux.org/yay.git /tmp/yay
-            cd /tmp/yay || exit 1
-            makepkg -si --noconfirm
-            cd - || exit 1
-            rm -rf /tmp/yay
+    elif [ "$DTYPE" = "arch" ]; then
+        print_warn "AUR helper non trovato. Installazione di yay in corso..."
+        $ESCALATION_TOOL $PACKAGER -S --needed --noconfirm git base-devel || {
+            print_error "Impossibile installare dipendenze per yay"
+            exit 1
+        }
+        git clone https://aur.archlinux.org/yay.git /tmp/yay && \
+        cd /tmp/yay && \
+        makepkg -si --noconfirm && \
+        cd ~ && rm -rf /tmp/yay
+
+        if command_exists yay; then
             AUR_HELPER="yay"
         else
-            AUR_HELPER="$ESCALATION_TOOL $PACKAGER"
-        fi
-    fi
-}
-
-
-# Funzione per messaggi
-print_msg() {
-    echo -e "${GREEN}==>${RESET} $1"
-}
-
-print_warn() {
-    echo -e "${YELLOW}==> ATTENZIONE:${RESET} $1"
-}
-
-print_error() {
-    echo -e "${RED}==> ERRORE:${RESET} $1"
-}
-
-# Funzione per verificare se un comando esiste
-command_exists() {
-    command -v "$1" &> /dev/null
-}
-
-# Aggiorna la lista dei mirror con gestione degli errori
-print_msg "Aggiornamento della lista dei mirror..."
-
-# Verifica se reflector è installato
-if ! command_exists reflector; then
-    print_warn "reflector non trovato. Installazione in corso..."
-    sudo pacman -S --noconfirm reflector
-    
-    # Verifica se l'installazione è riuscita
-    if ! command_exists reflector; then
-        print_error "Impossibile installare reflector. Saltando l'aggiornamento dei mirror."
-    fi
-fi
-
-# Prova ad aggiornare i mirror con reflector (se installato)
-if command_exists reflector; then
-    if ! sudo reflector --country 'Italy,Germany,France' --age 12 --protocol https --sort rate --save /etc/pacman.d/mirrorlist; then
-        print_warn "Aggiornamento con reflector fallito. Tentativo con metodo alternativo..."
-        
-        # Backup del file mirrorlist originale
-        sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.backup
-        
-        # Verifica se rankmirrors è disponibile (fa parte di pacman-contrib)
-        if command_exists rankmirrors; then
-            print_msg "Utilizzo rankmirrors come alternativa..."
-            # Ottieni i mirror dall'archivio Arch e ordinali
-            curl -s "https://archlinux.org/mirrorlist/?country=IT&country=DE&country=FR&protocol=https&use_mirror_status=on" | \
-            sed -e 's/^#Server/Server/' -e '/^#/d' | \
-            rankmirrors -n 10 - | \
-            sudo tee /etc/pacman.d/mirrorlist
-        else
-            print_warn "rankmirrors non disponibile. Utilizzo lista mirror predefinita..."
-            
-            # Crea una lista di mirror predefinita
-            echo "# Mirror predefiniti" | sudo tee /etc/pacman.d/mirrorlist
-            echo "Server = https://mirror.23media.com/archlinux/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
-            echo "Server = https://archlinux.mailtunnel.eu/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
-            echo "Server = https://mirrors.niyawe.de/archlinux/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
-            echo "Server = https://arch.yourlabs.org/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
-            echo "Server = https://mirror.cyberbits.eu/archlinux/\$repo/os/\$arch" | sudo tee -a /etc/pacman.d/mirrorlist
+            print_error "Installazione di yay fallita."
+            exit 1
         fi
     else
-        print_msg "Aggiornamento mirror completato con successo."
+        AUR_HELPER="$ESCALATION_TOOL $PACKAGER"
     fi
-else
-    print_warn "reflector non disponibile. Saltando l'aggiornamento dei mirror."
-fi
+}
 
-# Aggiorna il sistema
-print_msg "Aggiornando il sistema..."
-sudo pacman -Syu --noconfirm
-
-# Controlla e installa yay se necessario
-if ! command_exists yay; then
-    print_warn "yay non trovato. Installazione in corso..."
-    sudo pacman -S --needed git base-devel --noconfirm
-    git clone https://aur.archlinux.org/yay.git
-    cd yay
-    makepkg -si --noconfirm
-    cd ..
-    rm -rf yay
-else
-    print_msg "yay già installato."
-fi
-
+# Installa pacchetti organizzati per categoria
 install_packages() {
-     local -A package_groups=(
+    declare -A package_groups=(
         ["Utilità di sistema"]="ffmpeg timeshift"
         ["Utilità AUR"]="p7zip p7zip-gui baobab fastfetch-git libratbag hdsentinel piper freefilesync-bin mediainfo-gui"
         ["Browser e comunicazione"]="firefox brave-bin discord zoom telegram-desktop whatsapp-linux-desktop thunderbird localsend-bin google-chrome microsoft-edge-stable"
@@ -180,15 +108,23 @@ install_packages() {
         ["Compatibilità"]="wine"
     )
 
-    print_msg "Aggiornamento pacman & installazione python-pip, tk..."
-    sudo pacman -Syu --noconfirm
-    sudo pacman -S --noconfirm python-pip tk
+    print_msg "Aggiornamento pacman e installazione python-pip, tk..."
+    $ESCALATION_TOOL $PACKAGER -Syu --noconfirm
+    $ESCALATION_TOOL $PACKAGER -S --noconfirm python-pip tk
 
     for category in "${!package_groups[@]}"; do
-        print_msg "Installazione $category..."
-        yay -S --needed --noconfirm ${package_groups[$category]}
+        print_msg "Installazione: $category..."
+        $AUR_HELPER -S --needed --noconfirm ${package_groups[$category]} || \
+        print_warn "Alcuni pacchetti in '$category' non sono stati installati correttamente."
     done
 }
+
+### INIZIO ESECUZIONE ###
+checkEnv
+checkEscalationTool
+checkFlatpak
+checkAURHelper
+install_packages
 
 # =============  Installazione fancontrol-gui  ============= #
 print_msg "Installazione fancontrol-gui..."
@@ -447,61 +383,92 @@ install_auto_cpufreq() {
 }
 
 # ============= INSTALLAZIONE BOTTLES ============= #
-print_msg "Installazione e configurazione di BOTTLES..."
+checkEscalationTool() {
+    if command_exists sudo; then
+        ESCALATION_TOOL="sudo"
+    else
+        print_error "Comando sudo non trovato."
+        exit 1
+    fi
+}
 
 get_common_script() {
-   load_common_script() {
     COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
-    
-    # Verifica se wget o curl sono disponibili
-    if command -v wget >/dev/null 2>&1; then
+
+    if command_exists wget; then
         COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
-    elif command -v curl >/dev/null 2>&1; then
+    elif command_exists curl; then
         COMMON_SCRIPT_CONTENT=$(curl -s "$COMMON_SCRIPT_URL")
     else
-        echo "Errore: né wget né curl sono installati. Installarne uno per continuare."
-        sudo pacman -S --noconfirm wget
+        print_warn "wget e curl non trovati, installo wget..."
+        "$ESCALATION_TOOL" pacman -S --noconfirm wget
         COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
     fi
 
-    # Controlla se lo script è stato scaricato correttamente
     if [ -z "$COMMON_SCRIPT_CONTENT" ]; then
-        echo "Errore: impossibile caricare common-script.sh da $COMMON_SCRIPT_URL"
-        return 1
+        print_error "Impossibile caricare common-script.sh da $COMMON_SCRIPT_URL. Interrompo."
+        exit 1
     fi
 
-    # Esegui lo script scaricato
     eval "$COMMON_SCRIPT_CONTENT"
-    return 0
-   }
+}
+
+checkFlatpak() {
+    if ! command_exists flatpak; then
+        print_msg "Flatpak non installato, lo installo..."
+        "$ESCALATION_TOOL" pacman -S --noconfirm flatpak || {
+            print_error "Installazione flatpak fallita."
+            exit 1
+        }
+    fi
+
+    if ! flatpak remotes | grep -q "flathub"; then
+        print_msg "Aggiunta repository Flathub..."
+        "$ESCALATION_TOOL" flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+    fi
 }
 
 installBottles() {
-    if ! command_exists flatpak; then
-        checkEnv
-        checkEscalationTool
-        "$ESCALATION_TOOL" "$PACKAGER" install -y flatpak
-    fi
-    
-    # Aggiungi repository Flathub se non presente
-    if ! flatpak remotes | grep -q "flathub"; then
-        "$ESCALATION_TOOL" flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-    fi
-    
     if ! flatpak list | grep -q "com.usebottles.bottles"; then
-        printf "%b\n" "${YELLOW}Installing Bottles...${RC}"
-        "$ESCALATION_TOOL" flatpak install -y flathub com.usebottles.bottles
+        print_msg "Installazione Bottles in corso..."
+        "$ESCALATION_TOOL" flatpak install -y flathub com.usebottles.bottles || {
+            print_error "Installazione di Bottles fallita."
+            exit 1
+        }
     else
-        printf "%b\n" "${GREEN}Bottles is already installed.${RC}"
+        print_msg "Bottles è già installato."
     fi
+
+    create_bottles_launcher
 }
 
-# Verifica ambiente ed esegui installazione Bottles
+create_bottles_launcher() {
+    DESKTOP_FILE="$HOME/.local/share/applications/bottles.desktop"
+    mkdir -p "$(dirname "$DESKTOP_FILE")"
+
+    cat > "$DESKTOP_FILE" <<EOF
+[Desktop Entry]
+Name=Bottles
+Comment=Run Windows software on Linux using Bottles
+Exec=flatpak run com.usebottles.bottles
+Icon=com.usebottles.bottles
+Terminal=false
+Type=Application
+Categories=Utility;Wine;
+EOF
+
+    print_msg "Voce nel menu per Bottles creata in $DESKTOP_FILE"
+}
+
+### ESECUZIONE ###
+print_msg "Installazione e configurazione di BOTTLES..."
+
 checkEnv
 checkEscalationTool
+get_common_script
 checkFlatpak
-get_common_script || print_warn "Impossibile ottenere common-script.sh, continuo comunque..."
 installBottles
+
 
 # ============= SETUP FAST FETCH ============= #
 print_msg "Configurazione di Fast Fetch..."
@@ -992,64 +959,6 @@ configureAutoCpufreq() {
 # Esegui l'installazione e la configurazione di auto-cpufreq
 installAutoCpufreq
 configureAutoCpufreq
-
-# ============= INSTALLAZIONE BOTTLES ============= #
-print_msg "Installazione e configurazione di BOTTLES..."
-
-get_common_script() {
-   load_common_script() {
-    COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
-    
-    # Verifica se wget o curl sono disponibili
-    if command -v wget >/dev/null 2>&1; then
-        COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
-    elif command -v curl >/dev/null 2>&1; then
-        COMMON_SCRIPT_CONTENT=$(curl -s "$COMMON_SCRIPT_URL")
-    else
-        echo "Errore: né wget né curl sono installati. Installarne uno per continuare."
-        sudo pacman -S --noconfirm wget
-        COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
-    fi
-
-    # Controlla se lo script è stato scaricato correttamente
-    if [ -z "$COMMON_SCRIPT_CONTENT" ]; then
-        echo "Errore: impossibile caricare common-script.sh da $COMMON_SCRIPT_URL"
-        return 1
-    fi
-
-    # Esegui lo script scaricato
-    eval "$COMMON_SCRIPT_CONTENT"
-    return 0
-   }
-}
-
-installBottles() {
-    if ! command_exists flatpak; then
-        checkEnv
-        checkEscalationTool
-        "$ESCALATION_TOOL" "$PACKAGER" install -y flatpak
-    fi
-    
-    # Aggiungi repository Flathub se non presente
-    if ! flatpak remotes | grep -q "flathub"; then
-        "$ESCALATION_TOOL" flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-    fi
-    
-    if ! flatpak list | grep -q "com.usebottles.bottles"; then
-        printf "%b\n" "${YELLOW}Installing Bottles...${RC}"
-        "$ESCALATION_TOOL" flatpak install -y flathub com.usebottles.bottles
-    else
-        printf "%b\n" "${GREEN}Bottles is already installed.${RC}"
-    fi
-}
-
-# Verifica ambiente ed esegui installazione Bottles
-checkEnv
-checkEscalationTool
-checkFlatpak
-get_common_script || print_warn "Impossibile ottenere common-script.sh, continuo comunque..."
-installBottles
-
 # ============= SETUP FAST FETCH ============= #
 print_msg "Configurazione di Fast Fetch..."
 
