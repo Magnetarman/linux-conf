@@ -167,8 +167,8 @@ else
 fi
 
 install_packages() {
-    local -A package_groups=(
-        ["Utilità di sistema"]="ffmpeg"
+     local -A package_groups=(
+        ["Utilità di sistema"]="ffmpeg timeshift"
         ["Utilità AUR"]="p7zip p7zip-gui baobab fastfetch-git libratbag hdsentinel piper freefilesync-bin mediainfo-gui"
         ["Browser e comunicazione"]="firefox brave-bin discord zoom telegram-desktop whatsapp-linux-desktop thunderbird localsend-bin google-chrome microsoft-edge-stable"
         ["Multimedia"]="vlc handbrake mkvtoolnix-gui freac mp3tag obs-studio youtube-to-mp3 spotify plexamp-appimage reaper"
@@ -397,163 +397,54 @@ print_msg "MyBash installato con successo! Riavvia la shell per vedere i cambiam
 # ============= INSTALLAZIONE AUTO-CPUFREQ ============= #
 print_msg "Installazione e configurazione di auto-cpufreq..."
 
-# Definizione di funzione per il controllo dell'ambiente
-checkEnv() {
-    DTYPE="unknown"
-    if [ -f /etc/os-release ]; then
-        . /etc/os-release
-        case "$ID" in
-            arch|manjaro|endeavouros)
-                PACKAGER="pacman"
-                DTYPE="arch"
-                ;;
-            debian|ubuntu|pop|linuxmint|elementary)
-                PACKAGER="apt-get"
-                if command_exists nala; then
-                    PACKAGER="nala"
-                fi
-                DTYPE="debian"
-                ;;
-            fedora)
-                PACKAGER="dnf"
-                DTYPE="fedora"
-                ;;
-            opensuse*)
-                PACKAGER="zypper"
-                DTYPE="opensuse"
-                ;;
-            *)
-                print_error "Distribuzione non riconosciuta: $ID"
-                exit 1
-                ;;
-        esac
-    else
-        print_error "File /etc/os-release non trovato. Impossibile determinare la distribuzione."
+install_auto_cpufreq() {
+    print_msg "Installazione e configurazione di auto-cpufreq..."
+
+    # Verifica presenza comando sudo
+    if ! command_exists sudo; then
+        print_error "È richiesto sudo per continuare."
         exit 1
     fi
-}
 
-# Funzione per verificare lo strumento di escalation
-checkEscalationTool() {
-    if command_exists sudo; then
-        ESCALATION_TOOL="sudo"
-    elif command_exists doas; then
-        ESCALATION_TOOL="doas"
-    else
-        print_error "Né sudo né doas sono installati. Impossibile procedere."
-        exit 1
-    fi
-}
-
-# Funzione per verificare Flatpak
-checkFlatpak() {
-    if ! command_exists flatpak; then
-        print_warn "Flatpak non trovato. Installazione in corso..."
-        "$ESCALATION_TOOL" "$PACKAGER" install -y flatpak
-    fi
-}
-
-# Funzione per verificare AUR helper
-checkAURHelper() {
-    AUR_HELPER=""
+    # Verifica presenza helper AUR
     if command_exists yay; then
         AUR_HELPER="yay"
     elif command_exists paru; then
         AUR_HELPER="paru"
     else
-        # Siamo su Arch e non abbiamo un helper AUR
-        if [ "$DTYPE" = "arch" ]; then
-            print_warn "Nessun helper AUR trovato. Installazione di yay..."
-            TEMP_DIR=$(mktemp -d)
-            cd "$TEMP_DIR" || return
-            "$ESCALATION_TOOL" "$PACKAGER" -S --needed --noconfirm git base-devel
-            git clone https://aur.archlinux.org/yay.git
-            cd yay || return
-            makepkg -si --noconfirm
-            cd "$HOME" || return
-            rm -rf "$TEMP_DIR"
-            AUR_HELPER="yay"
-        else
-            AUR_HELPER="$ESCALATION_TOOL $PACKAGER"
-        fi
+        print_warn "Nessun AUR helper trovato. Installazione di yay..."
+        TEMP_DIR=$(mktemp -d)
+        git clone https://aur.archlinux.org/yay.git "$TEMP_DIR/yay"
+        (cd "$TEMP_DIR/yay" && makepkg -si --noconfirm)
+        rm -rf "$TEMP_DIR"
+        AUR_HELPER="yay"
     fi
-}
 
-installAutoCpufreq() {
-    print_msg "Installazione di auto-cpufreq..."
-    
-    # Verifica l'ambiente
-    checkEnv
-    checkEscalationTool
-    
+    # Disabilita power-profiles-daemon se presente
+    if command_exists powerprofilesctl; then
+        print_warn "Disabilitazione power-profiles-daemon..."
+        sudo systemctl disable --now power-profiles-daemon
+    fi
+
+    # Installa auto-cpufreq
     if ! command_exists auto-cpufreq; then
-        print_warn "auto-cpufreq non trovato. Installazione in corso..."
-        
-        # Verifica se powerprofilesctl è attivo e lo disabilita
-        if command_exists powerprofilesctl; then
-            print_warn "Disabilitazione del servizio powerprofilesctl..."
-            sudo systemctl disable --now power-profiles-daemon
-        fi
-        
-        # Installazione in base alla distribuzione
-        case "$PACKAGER" in
-            pacman)
-                checkAURHelper
-                $AUR_HELPER -S --needed --noconfirm auto-cpufreq
-                ;;
-            apt-get|nala)
-                # Installazione su sistemi Debian/Ubuntu
-                TEMP_DIR=$(mktemp -d)
-                cd "$TEMP_DIR" || return
-                git clone https://github.com/AdnanHodzic/auto-cpufreq.git
-                cd auto-cpufreq || return
-                "$ESCALATION_TOOL" ./auto-cpufreq-installer
-                cd "$HOME" || return
-                rm -rf "$TEMP_DIR"
-                ;;
-            dnf)
-                # Installazione su Fedora
-                TEMP_DIR=$(mktemp -d)
-                cd "$TEMP_DIR" || return
-                git clone https://github.com/AdnanHodzic/auto-cpufreq.git
-                cd auto-cpufreq || return
-                "$ESCALATION_TOOL" ./auto-cpufreq-installer
-                cd "$HOME" || return
-                rm -rf "$TEMP_DIR"
-                ;;
-            *)
-                print_error "Pacchettizzatore non supportato per l'installazione di auto-cpufreq"
-                return 1
-                ;;
-        esac
-        
-        "$ESCALATION_TOOL" systemctl enable --now auto-cpufreq
+        print_msg "Installazione di auto-cpufreq tramite $AUR_HELPER..."
+        $AUR_HELPER -S --needed --noconfirm auto-cpufreq
+        sudo systemctl enable --now auto-cpufreq
     else
         print_msg "auto-cpufreq è già installato."
     fi
-}
 
-configureAutoCpufreq() {
-    print_msg "Configurazione di auto-cpufreq in base al tipo di dispositivo..."
-    
-    if command_exists auto-cpufreq; then
-        # Verifica se il sistema è un laptop o un desktop controllando la presenza di batterie
-        if ls /sys/class/power_supply/BAT* >/dev/null 2>&1; then
-            print_msg "Sistema rilevato come laptop. Configurazione in modalità powersave..."
-            sudo auto-cpufreq --force=powersave || print_warn "Errore nell'impostazione della modalità powersave"
-        else
-            print_msg "Sistema rilevato come desktop. Configurazione in modalità performance..."
-            sudo auto-cpufreq --force=performance || print_warn "Errore nell'impostazione della modalità performance"
-        fi
-        print_msg "auto-cpufreq configurato con successo!"
+    # Configurazione in base al tipo di macchina
+    print_msg "Configurazione di auto-cpufreq..."
+    if ls /sys/class/power_supply/BAT* >/dev/null 2>&1; then
+        print_msg "Laptop rilevato: modalità powersave"
+        sudo auto-cpufreq --force=powersave || print_warn "Errore configurazione powersave"
     else
-        print_error "auto-cpufreq non è installato. Installazione fallita."
+        print_msg "Desktop rilevato: modalità performance"
+        sudo auto-cpufreq --force=performance || print_warn "Errore configurazione performance"
     fi
 }
-
-# Esegui l'installazione e la configurazione di auto-cpufreq
-installAutoCpufreq
-configureAutoCpufreq
 
 # ============= INSTALLAZIONE BOTTLES ============= #
 print_msg "Installazione e configurazione di BOTTLES..."
