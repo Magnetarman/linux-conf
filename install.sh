@@ -766,124 +766,6 @@ checkEscalationTool
 installDepend || print_warn "Installazione dipendenze gaming fallita, continuo comunque..."
 installAdditionalDepend || print_warn "Installazione pacchetti gaming aggiuntivi fallita, continuo comunque..."
 
-
-
-# ============= SETUP LIBRERIE ADDIZIONALI PER IL GAMING ============= #
-print_msg "Installazione addizionale librerie Gaming..."
-
-installDepend() {
-    DEPENDENCIES='wine dbus git'
-    printf "%b\n" "${YELLOW}Installing dependencies...${RC}"
-    case "$PACKAGER" in
-        pacman)
-            #Check for multilib
-            if ! grep -q "^\s*\[multilib\]" /etc/pacman.conf; then
-                echo "[multilib]" | "$ESCALATION_TOOL" tee -a /etc/pacman.conf
-                echo "Include = /etc/pacman.d/mirrorlist" | "$ESCALATION_TOOL" tee -a /etc/pacman.conf
-                "$ESCALATION_TOOL" "$PACKAGER" -Syu
-            else
-                printf "%b\n" "${GREEN}Multilib is already enabled.${RC}"
-            fi
-
-            DISTRO_DEPS="gnutls lib32-gnutls base-devel gtk2 gtk3 lib32-gtk2 lib32-gtk3 libpulse lib32-libpulse alsa-lib lib32-alsa-lib \
-                alsa-utils alsa-plugins lib32-alsa-plugins alsa-lib lib32-alsa-lib giflib lib32-giflib libpng lib32-libpng \
-                libldap lib32-libldap openal lib32-openal libxcomposite lib32-libxcomposite libxinerama lib32-libxinerama \
-                ncurses lib32-ncurses vulkan-icd-loader lib32-vulkan-icd-loader ocl-icd lib32-ocl-icd libva lib32-libva \
-                gst-plugins-base-libs lib32-gst-plugins-base-libs sdl2 lib32-sdl2 v4l-utils lib32-v4l-utils sqlite lib32-sqlite"
-
-            checkAURHelper
-            $AUR_HELPER -S --needed --noconfirm $DEPENDENCIES $DISTRO_DEPS
-            ;;
-        apt-get | nala)
-            DISTRO_DEPS="libasound2-plugins:i386 libsdl2-2.0-0:i386 libdbus-1-3:i386 libsqlite3-0:i386 wine64 wine32"
-
-            "$ESCALATION_TOOL" dpkg --add-architecture i386
-
-            if [ "$DTYPE" != "pop" ]; then
-                "$ESCALATION_TOOL" "$PACKAGER" install -y software-properties-common
-                "$ESCALATION_TOOL" apt-add-repository contrib -y
-            fi
-
-            "$ESCALATION_TOOL" "$PACKAGER" update
-            "$ESCALATION_TOOL" "$PACKAGER" install -y $DEPENDENCIES $DISTRO_DEPS
-            ;;
-        dnf)
-            # Controllo la versione di Fedora
-            FEDORA_VERSION=$(rpm -E %fedora)
-            if [ "$FEDORA_VERSION" -le 41 ]; then
-                "$ESCALATION_TOOL" "$PACKAGER" install ffmpeg ffmpeg-libs -y
-                "$ESCALATION_TOOL" "$PACKAGER" install -y $DEPENDENCIES
-            else
-                printf "%b\n" "${CYAN}Fedora > 41 detected. Installing rpmfusion repos.${RC}"
-                "$ESCALATION_TOOL" "$PACKAGER" install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-"$(rpm -E %fedora)".noarch.rpm -y
-                "$ESCALATION_TOOL" "$PACKAGER" config-manager --enable fedora-cisco-openh264 -y
-                "$ESCALATION_TOOL" "$PACKAGER" install -y $DEPENDENCIES
-            fi
-            ;;
-        zypper)
-            "$ESCALATION_TOOL" "$PACKAGER" -n install $DEPENDENCIES
-            ;;
-        *)
-            printf "%b\n" "${RED}Unsupported package manager ${PACKAGER}${RC}"
-            return 1
-            ;;
-    esac
-    return 0
-}
-
-installAdditionalDepend() {
-    case "$PACKAGER" in
-        pacman)
-            DISTRO_DEPS='steam lutris goverlay'
-            "$ESCALATION_TOOL" "$PACKAGER" -S --needed --noconfirm $DISTRO_DEPS
-            ;;
-        apt-get | nala)
-            version=$(git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/lutris/lutris |
-                grep -v 'beta' |
-                tail -n1 |
-                cut -d '/' --fields=3)
-
-            version_no_v=$(echo "$version" | tr -d v)
-            curl -sSLo "lutris_${version_no_v}_all.deb" "https://github.com/lutris/lutris/releases/download/${version}/lutris_${version_no_v}_all.deb"
-
-            printf "%b\n" "${YELLOW}Installing Lutris...${RC}"
-            "$ESCALATION_TOOL" "$PACKAGER" install -y ./lutris_"${version_no_v}"_all.deb
-
-            rm lutris_"${version_no_v}"_all.deb
-
-            printf "%b\n" "${GREEN}Lutris Installation complete.${RC}"
-            printf "%b\n" "${YELLOW}Installing steam...${RC}"
-
-            if lsb_release -i | grep -qi Debian; then
-                "$ESCALATION_TOOL" apt-add-repository non-free -y
-                "$ESCALATION_TOOL" "$PACKAGER" install steam-installer -y
-            else
-                "$ESCALATION_TOOL" "$PACKAGER" install -y steam
-            fi
-            ;;
-        dnf)
-            DISTRO_DEPS='steam lutris'
-            "$ESCALATION_TOOL" "$PACKAGER" install -y $DISTRO_DEPS
-            ;;
-        zypper)
-            DISTRO_DEPS='lutris'
-            "$ESCALATION_TOOL" "$PACKAGER" -n install $DISTRO_DEPS
-            ;;
-        *)
-            printf "%b\n" "${RED}Unsupported package manager ${PACKAGER}${RC}"
-            return 1
-            ;;
-    esac
-    return 0
-}
-
-# Installazione librerie gaming
-checkEnv
-checkAURHelper
-checkEscalationTool
-installDepend || print_warn "Installazione dipendenze gaming fallita, continuo comunque..."
-installAdditionalDepend || print_warn "Installazione pacchetti gaming aggiuntivi fallita, continuo comunque..."
-
 # ============= APPLICAZIONE TEMI ADDIZIONALI ============= #
 print_msg "Applicazione Temi Addizionali..."
 
@@ -1169,65 +1051,47 @@ fi
 
 # =============  Installazione Da Vinci Resolve  ============= #
 print_msg "Installazione Da Vinci Resolve (Metodo Alternativo)..."
-# URL del file DaVinci Resolve
-URL="https://swr.cloud.blackmagicdesign.com/DaVinciResolve/v19.1.4/DaVinci_Resolve_19.1.4_Linux.zip?verify=1746015631-pVwva6btO%2FbqLQknJJtJj7WZZfFgv3cNf3vp2qbSDXM%3D"
-FILENAME="DaVinci_Resolve_19.1.4_Linux.zip"
+# Colori per output
+echo -e "${GREEN}==> DaVinci Resolve Installer for Arch Linux${RESET}"
 
-# Cartella di destinazione
-DEST_DIR="$HOME/Downloads/DaVinci_Resolve"
-
-# Crea la cartella di destinazione se non esiste
-mkdir -p "$DEST_DIR"
-
-# Naviga nella cartella di destinazione
-cd "$DEST_DIR" || {
-    echo "Impossibile accedere alla directory $DEST_DIR. Aborto l'installazione di DaVinci Resolve."
-    exit 0  # Non interrompe l'esecuzione dello script principale
-}
-
-# Scarica il file zip di DaVinci Resolve
-echo "Scaricando DaVinci Resolve..."
-wget -O "$FILENAME" "$URL" || {
-    echo "Errore nel download. Provo con curl..."
-    curl -L "$URL" -o "$FILENAME" || {
-        echo "Errore nel download. Controlla il link."
-        exit 0  # Non interrompe l'esecuzione dello script principale
-    }
-}
-
-# Controlla se il download è stato completato
-if [ ! -f "$FILENAME" ]; then
-    echo "File non trovato dopo il download. Aborto l'installazione di DaVinci Resolve."
-    exit 0  # Non interrompe l'esecuzione dello script principale
+# Controlla se yay è installato
+if ! command -v yay &> /dev/null; then
+    echo -e "${RED}Errore: 'yay' non è installato. Installa un helper AUR come yay prima di procedere.${RESET}"
+    exit 1
 fi
 
-echo "Download completato!"
+# Chiedi all'utente di incollare il link temporaneo
+read -p "Incolla il link temporaneo di DaVinci Resolve: " RESOLVE_URL
 
-# Estrai il file zip
-echo "Estraendo il file..."
-unzip -o "$FILENAME" || {
-    echo "Errore nell'estrazione del file. Verificare che unzip sia installato."
-    exit 0  # Non interrompe l'esecuzione dello script principale
+# Crea cartella di lavoro
+mkdir -p ~/resolve-install
+cd ~/resolve-install || exit 1
+
+# Scarica il file ZIP
+echo -e "${GREEN}==> Scaricamento DaVinci Resolve...${RESET}"
+wget -O DaVinci_Resolve.zip "$RESOLVE_URL" || {
+    echo -e "${RED}Errore durante il download. Il link potrebbe essere scaduto.${RESET}"
+    exit 1
 }
 
-# Controlla se il file .run è presente
-if [ ! -f "DaVinci_Resolve_19.1.4_Linux.run" ]; then
-    echo "Errore: il file .run non è stato estratto correttamente."
-    exit 0  # Non interrompe l'esecuzione dello script principale
-fi
-
-# Rendi eseguibile il file .run
-echo "Rendendo eseguibile il file di installazione..."
-chmod +x DaVinci_Resolve_19.1.4_Linux.run
-
-# Esegui l'installazione
-echo "Avviando l'installazione di DaVinci Resolve..."
-sudo ./DaVinci_Resolve_19.1.4_Linux.run || {
-    echo "L'installazione di DaVinci Resolve non è riuscita."
-    exit 0  # Non interrompe l'esecuzione dello script principale
+# Estrai lo zip
+unzip DaVinci_Resolve.zip || {
+    echo -e "${RED}Errore durante l'estrazione dell'archivio.${RESET}"
+    exit 1
 }
 
-echo "Installazione completata!"
+# Trova lo script di installazione
+INSTALLER=$(find . -type f -name "DaVinci_Resolve*.run")
+
+# Rendi eseguibile
+chmod +x "$INSTALLER"
+
+# Esegui installazione (richiede sudo)
+echo -e "${GREEN}==> Avvio installazione...${RESET}"
+sudo ./"$INSTALLER"
+
+echo -e "${GREEN}✅ Installazione completata.${RESET}"
+
 
 # =============  Installazione MH Audio Converter con Wine  ============= #
 print_msg "Installazione MH Audio Converter con Wine..."
