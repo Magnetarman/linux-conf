@@ -497,68 +497,37 @@ configureAutoCpufreq
 # ============= CALCOLO DELLA DIRECTORY DELLO SCRIPT PRINCIPALE =============
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# ============= FUNZIONI DI SUPPORTO =============
 # ============= ESECUZIONE SCRIPT ESTERNI =============
 echo "==============================================="
 echo "AVVIO SCRIPT ESTERNI"
 echo "==============================================="
 echo ""
 
-# Script da eseguire
-echo "Tentativo di esecuzione di bottles-setup.sh..."
-if [ -f "bottles-setup.sh" ]; then
-    echo "File bottles-setup.sh trovato. Esecuzione..."
-    chmod +x bottles-setup.sh
-    AUTOMATED=1 bash bottles-setup.sh
-    echo "Esecuzione di bottles-setup.sh completata."
-else
-    echo "File bottles-setup.sh non trovato nella directory corrente."
-fi
-echo ""
+# Lista degli script da eseguire
+EXTERNAL_SCRIPTS=(
+    "bottles-setup.sh"
+    "fastfetch-setup.sh"
+    "gaming-setup.sh"
+    "global-theme.sh"
+    "terminus-tty.sh"
+)
 
-echo "Tentativo di esecuzione di fastfetch-setup.sh..."
-if [ -f "fastfetch-setup.sh" ]; then
-    echo "File fastfetch-setup.sh trovato. Esecuzione..."
-    chmod +x fastfetch-setup.sh
-    AUTOMATED=1 bash fastfetch-setup.sh
-    echo "Esecuzione di fastfetch-setup.sh completata."
-else
-    echo "File fastfetch-setup.sh non trovato nella directory corrente."
-fi
-echo ""
-
-echo "Tentativo di esecuzione di gaming-setup.sh..."
-if [ -f "gaming-setup.sh" ]; then
-    echo "File gaming-setup.sh trovato. Esecuzione..."
-    chmod +x gaming-setup.sh
-    AUTOMATED=1 bash gaming-setup.sh
-    echo "Esecuzione di gaming-setup.sh completata."
-else
-    echo "File gaming-setup.sh non trovato nella directory corrente."
-fi
-echo ""
-
-echo "Tentativo di esecuzione di global-theme.sh..."
-if [ -f "global-theme.sh" ]; then
-    echo "File global-theme.sh trovato. Esecuzione..."
-    chmod +x global-theme.sh
-    AUTOMATED=1 bash global-theme.sh
-    echo "Esecuzione di global-theme.sh completata."
-else
-    echo "File global-theme.sh non trovato nella directory corrente."
-fi
-echo ""
-
-echo "Tentativo di esecuzione di terminus-tty.sh..."
-if [ -f "terminus-tty.sh" ]; then
-    echo "File terminus-tty.sh trovato. Esecuzione..."
-    chmod +x terminus-tty.sh
-    AUTOMATED=1 bash terminus-tty.sh
-    echo "Esecuzione di terminus-tty.sh completata."
-else
-    echo "File terminus-tty.sh non trovato nella directory corrente."
-fi
-echo ""
+# Esecuzione
+for SCRIPT in "${EXTERNAL_SCRIPTS[@]}"; do
+    SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT"
+    echo "Tentativo di esecuzione di $SCRIPT..."
+    
+    if [ -f "$SCRIPT_PATH" ]; then
+        echo "File $SCRIPT trovato. Esecuzione..."
+        chmod +x "$SCRIPT_PATH"
+        AUTOMATED=1 bash "$SCRIPT_PATH"
+        echo "Esecuzione di $SCRIPT completata."
+    else
+        echo "File $SCRIPT non trovato nella directory dello script principale ($SCRIPT_DIR)."
+    fi
+    
+    echo ""
+done
 
 echo "==============================================="
 echo "ESECUZIONE SCRIPT ESTERNI COMPLETATA"
