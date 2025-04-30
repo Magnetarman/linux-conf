@@ -113,6 +113,7 @@ chmod +x install.sh
 - Piper (configurazione mouse)
 - Simplescan (scansione)
 - My Bash
+- Timeshift
 
 ### AI e ML
 
