@@ -105,7 +105,7 @@ chmod +x install.sh
 - FreeFileSync
 - Media Info
 - Responsively
-- Google Calendar Widget
+- <del>Google Calendar Widget</del> (Scrica una repo da 40GB, qualcosa non quadra)
 - Baobab (analizzatore di spazio su disco)
 - Fastfetch
 - HDSentinel

@@ -119,8 +119,6 @@ yay -S --needed --noconfirm \
     localsend-bin \
     google-chrome \
     microsoft-edge-stable \
-    responsively \
-    google-calender-widget
 
 # ----- Multimedia e intrattenimento -----
 print_msg "Installazione applicazioni multimediali..."
@@ -135,7 +133,6 @@ yay -S --needed --noconfirm \
     spotify \
     plexamp-appimage \
     reaper \
-    davinci-resolve
 
 # ----- Download e condivisione file -----
 print_msg "Installazione app per download e condivisione file..."
@@ -679,12 +676,6 @@ installDepend
 installAdditionalDepend
 
 
-# Lista degli script da eseguire
-EXTERNAL_SCRIPTS=(
-    "global-theme.sh"
-    "terminus-tty.sh"
-)
-
 # ============= APPLICAZIONE TEMI ADDIZIONALI ============= #
 print_msg "Applicazione Temi Addizionali..."
 
@@ -864,6 +855,94 @@ SetTermiusFonts() {
 checkEnv
 InstallTermiusFonts
 SetTermiusFonts
+
+# =============  Installazione Responsively App Tramite APP IMAGE  ============= #
+print_msg "Installazione Responsiveli App Tramite APP IMAGE..."
+# Variabili
+APP_NAME="ResponsivelyApp"
+VERSION="1.16.0"
+APPIMAGE_NAME="$APP_NAME-$VERSION.AppImage"
+DOWNLOAD_URL="https://github.com/responsively-org/responsively-app-releases/releases/download/v$VERSION/$APPIMAGE_NAME"
+INSTALL_DIR="$HOME/.local/bin"
+DESKTOP_FILE="$HOME/.local/share/applications/${APP_NAME}.desktop"
+
+# Crea cartelle se non esistono
+mkdir -p "$INSTALL_DIR"
+mkdir -p "$(dirname "$DESKTOP_FILE")"
+
+# Scarica l'AppImage solo se non esiste già
+if [ ! -f "$INSTALL_DIR/$APPIMAGE_NAME" ]; then
+    echo "Scaricando $APPIMAGE_NAME..."
+    curl -L "$DOWNLOAD_URL" -o "$INSTALL_DIR/$APPIMAGE_NAME"
+    chmod +x "$INSTALL_DIR/$APPIMAGE_NAME"
+else
+    echo "L'AppImage è già presente in $INSTALL_DIR"
+fi
+
+# Crea file .desktop
+echo "Creando file .desktop..."
+cat > "$DESKTOP_FILE" <<EOF
+[Desktop Entry]
+Name=Responsively App
+Exec=$INSTALL_DIR/$APPIMAGE_NAME
+Icon=web-browser
+Type=Application
+Categories=Development;WebDevelopment;
+Terminal=false
+EOF
+
+# Aggiorna database delle applicazioni
+update-desktop-database "$HOME/.local/share/applications/" >/dev/null 2>&1
+
+
+# =============  Installazione Da Vinci Resolve  ============= #
+print_msg "Installazione Da Vinci Resolve (Metodo Alternativo)..."
+# URL del file DaVinci Resolve
+URL="https://swr.cloud.blackmagicdesign.com/DaVinciResolve/v19.1.4/DaVinci_Resolve_19.1.4_Linux.zip?verify=1746015631-pVwva6btO%2FbqLQknJJtJj7WZZfFgv3cNf3vp2qbSDXM%3D"
+FILENAME="DaVinci_Resolve_19.1.4_Linux.zip"
+
+# Cartella di destinazione
+DEST_DIR="$HOME/Downloads/DaVinci_Resolve"
+
+# Crea la cartella di destinazione se non esiste
+mkdir -p "$DEST_DIR"
+
+# Naviga nella cartella di destinazione
+cd "$DEST_DIR" || exit 1
+
+# Scarica il file zip di DaVinci Resolve
+echo "Scaricando DaVinci Resolve..."
+wget -O "$FILENAME" "$URL"
+
+# Controlla se il download è stato completato
+if [ ! -f "$FILENAME" ]; then
+    echo "Errore nel download. Controlla il link."
+    exit 1
+fi
+
+echo "Download completato!"
+
+# Estrai il file zip
+echo "Estraendo il file..."
+unzip "$FILENAME"
+
+# Controlla se il file .run è presente
+if [ ! -f "DaVinci_Resolve_19.1.4_Linux.run" ]; then
+    echo "Errore: il file .run non è stato estratto correttamente."
+    exit 1
+fi
+
+# Rendi eseguibile il file .run
+echo "Rendendo eseguibile il file di installazione..."
+chmod +x DaVinci_Resolve_19.1.4_Linux.run
+
+# Esegui l'installazione
+echo "Avviando l'installazione di DaVinci Resolve..."
+sudo ./DaVinci_Resolve_19.1.4_Linux.run
+
+echo "Installazione completata!"
+
+
 
 # =============  Installazione MH Audio Converter con Wine  ============= #
 print_msg "Installazione MH Audio Converter con Wine..."
