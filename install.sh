@@ -17,28 +17,13 @@ command_exists() {
     command -v "$1" &> /dev/null
 }
 
-# Rileva sistema operativo e gestore pacchetti
-checkEnv() {
-    if command_exists pacman; then
-        PACKAGER="pacman"
-        DTYPE="arch"
-    elif command_exists apt-get; then
-        PACKAGER="apt-get"
-        DTYPE="debian"
-        if command_exists nala; then
-            PACKAGER="nala"
-        fi
-    elif command_exists dnf; then
-        PACKAGER="dnf"
-        DTYPE="fedora"
-    elif command_exists zypper; then
-        PACKAGER="zypper"
-        DTYPE="suse"
-    else
-        print_error "Sistema operativo non supportato."
+# Verifica se è Arch Linux
+checkArchLinux() {
+    if ! command_exists pacman; then
+        print_error "Questo script è progettato solo per Arch Linux."
         exit 1
     fi
-    print_msg "Sistema rilevato: $DTYPE con gestore pacchetti $PACKAGER"
+    print_msg "Sistema Arch Linux rilevato."
 }
 
 # Verifica tool per privilegi di root
@@ -52,44 +37,60 @@ checkEscalationTool() {
 }
 
 # Installa e configura Flatpak + Flathub
-checkFlatpak() {
+installFlatpak() {
+    print_msg "Controllo Flatpak..."
     if ! command_exists flatpak; then
         print_warn "Flatpak non è installato. Installazione in corso..."
-        $ESCALATION_TOOL $PACKAGER install -y flatpak || {
-            print_error "Impossibile installare Flatpak. Installalo manualmente."
+        $ESCALATION_TOOL pacman -S --needed --noconfirm flatpak || {
+            print_error "Impossibile installare Flatpak. Controlla la connessione internet o i permessi."
             exit 1
         }
+    else
+        print_msg "Flatpak è già installato."
     fi
 
+    print_msg "Configurazione del repository Flathub..."
     if ! flatpak remotes | grep -q flathub; then
-        print_msg "Configurazione del repository Flathub..."
-        $ESCALATION_TOOL flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        $ESCALATION_TOOL flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo || {
+            print_error "Impossibile aggiungere il repository Flathub. Controlla la connessione internet."
+            exit 1
+        }
+        print_msg "Repository Flathub aggiunto con successo."
+    else
+        print_msg "Repository Flathub è già configurato."
     fi
 }
 
-# Installa yay (solo per Arch)
-checkAURHelper() {
+# Installa yay
+installAURHelper() {
     if command_exists yay; then
+        print_msg "yay è già installato."
         AUR_HELPER="yay"
-    elif [ "$DTYPE" = "arch" ]; then
+    else
         print_warn "AUR helper non trovato. Installazione di yay in corso..."
-        $ESCALATION_TOOL $PACKAGER -S --needed --noconfirm git base-devel || {
+        $ESCALATION_TOOL pacman -S --needed --noconfirm git base-devel || {
             print_error "Impossibile installare dipendenze per yay"
             exit 1
         }
-        git clone https://aur.archlinux.org/yay.git /tmp/yay && \
+        
+        print_msg "Clonazione del repository yay..."
+        git clone https://aur.archlinux.org/yay.git /tmp/yay || {
+            print_error "Impossibile clonare il repository yay."
+            exit 1
+        }
+        
+        print_msg "Compilazione e installazione di yay..."
         cd /tmp/yay && \
         makepkg -si --noconfirm && \
         cd ~ && rm -rf /tmp/yay
 
         if command_exists yay; then
+            print_msg "yay installato con successo."
             AUR_HELPER="yay"
         else
             print_error "Installazione di yay fallita."
             exit 1
         fi
-    else
-        AUR_HELPER="$ESCALATION_TOOL $PACKAGER"
     fi
 }
 
@@ -108,9 +109,11 @@ install_packages() {
         ["Compatibilità"]="wine"
     )
 
-    print_msg "Aggiornamento pacman e installazione python-pip, tk..."
-    $ESCALATION_TOOL $PACKAGER -Syu --noconfirm
-    $ESCALATION_TOOL $PACKAGER -S --noconfirm python-pip tk
+    print_msg "Aggiornamento sistema e installazione dipendenze di base..."
+    $ESCALATION_TOOL pacman -Syu --noconfirm
+    $ESCALATION_TOOL pacman -S --needed --noconfirm python-pip tk || {
+        print_warn "Impossibile installare alcune dipendenze di base."
+    }
 
     for category in "${!package_groups[@]}"; do
         print_msg "Installazione: $category..."
@@ -120,11 +123,14 @@ install_packages() {
 }
 
 ### INIZIO ESECUZIONE ###
-checkEnv
+print_msg "Avvio dello script di installazione software per Arch Linux"
+checkArchLinux
 checkEscalationTool
-checkFlatpak
-checkAURHelper
+installFlatpak
+installAURHelper
 install_packages
+
+print_msg "Installazione completata. Verifica eventuali messaggi di avvertimento sopra."
 
 # =============  Installazione fancontrol-gui  ============= #
 print_msg "Installazione fancontrol-gui..."
