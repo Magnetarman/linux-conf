@@ -429,17 +429,42 @@ configureAutoCpufreq
 
 # ============= INSTALLAZIONE BOTTLES ============= #
 print_msg "Installazione e configurazione di BOTTLES..."
-# Ottiene la directory in cui si trova questo script
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-# Controlla se common-script.sh esiste nella stessa directory
-if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
-    echo "common-script.sh non trovato in $SCRIPT_DIR"
-    exit 1
-fi
-
-# Include common-script.sh dalla stessa directory
-. "$SCRIPT_DIR/common-script.sh"
+get_common_script() {
+    # Ottiene la directory in cui si trova questo script
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    COMMON_SCRIPT_PATH="$SCRIPT_DIR/common-script.sh"
+    COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
+    
+    # Controlla se common-script.sh esiste nella stessa directory
+    if [ ! -f "$COMMON_SCRIPT_PATH" ]; then
+        echo -e "${YELLOW}common-script.sh non trovato in $SCRIPT_DIR${RESET}"
+        echo -e "${GREEN}Scaricando common-script.sh da GitHub...${RESET}"
+        
+        # Verifica se wget o curl sono disponibili
+        if command_exists wget; then
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        elif command_exists curl; then
+            curl -s "$COMMON_SCRIPT_URL" -o "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}È necessario wget o curl per scaricare common-script.sh${RESET}"
+            sudo pacman -S --noconfirm wget
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        fi
+        
+        # Verifica se il download è avvenuto con successo
+        if [ -f "$COMMON_SCRIPT_PATH" ]; then
+            echo -e "${GREEN}common-script.sh scaricato con successo${RESET}"
+            # Rendi il file eseguibile
+            chmod +x "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}Impossibile scaricare common-script.sh. Lo script potrebbe non funzionare correttamente.${RESET}"
+            exit 1
+        fi
+    fi
+    
+    # Include common-script.sh
+    . "$COMMON_SCRIPT_PATH"
+}
 
 installBottles() {
     if ! command_exists com.usebottles.bottles; then
@@ -458,17 +483,42 @@ installBottles
 # ============= SETUP FAST FETCH ============= #
 print_msg "Configurazione di Fast Fetch..."
 
-# Ottiene la directory in cui si trova questo script
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-# Controlla se common-script.sh esiste nella stessa directory
-if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
-    echo "common-script.sh non trovato in $SCRIPT_DIR"
-    exit 1
-fi
-
-# Include common-script.sh dalla stessa directory
-. "$SCRIPT_DIR/common-script.sh"
+get_common_script() {
+    # Ottiene la directory in cui si trova questo script
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    COMMON_SCRIPT_PATH="$SCRIPT_DIR/common-script.sh"
+    COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
+    
+    # Controlla se common-script.sh esiste nella stessa directory
+    if [ ! -f "$COMMON_SCRIPT_PATH" ]; then
+        echo -e "${YELLOW}common-script.sh non trovato in $SCRIPT_DIR${RESET}"
+        echo -e "${GREEN}Scaricando common-script.sh da GitHub...${RESET}"
+        
+        # Verifica se wget o curl sono disponibili
+        if command_exists wget; then
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        elif command_exists curl; then
+            curl -s "$COMMON_SCRIPT_URL" -o "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}È necessario wget o curl per scaricare common-script.sh${RESET}"
+            sudo pacman -S --noconfirm wget
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        fi
+        
+        # Verifica se il download è avvenuto con successo
+        if [ -f "$COMMON_SCRIPT_PATH" ]; then
+            echo -e "${GREEN}common-script.sh scaricato con successo${RESET}"
+            # Rendi il file eseguibile
+            chmod +x "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}Impossibile scaricare common-script.sh. Lo script potrebbe non funzionare correttamente.${RESET}"
+            exit 1
+        fi
+    fi
+    
+    # Include common-script.sh
+    . "$COMMON_SCRIPT_PATH"
+}
 
 installFastfetch() {
     if ! command_exists fastfetch; then
@@ -556,17 +606,42 @@ setupFastfetchShell
 # ============= SETUP LIBRERIE ADDIZIONALI PER IL GAMING ============= #
 print_msg "Installazione addizionale librerie Gaming..."
 
-# Ottiene la directory in cui si trova questo script
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-# Controlla se common-script.sh esiste nella stessa directory
-if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
-    echo "common-script.sh non trovato in $SCRIPT_DIR"
-    exit 1
-fi
-
-# Include common-script.sh dalla stessa directory
-. "$SCRIPT_DIR/common-script.sh"
+get_common_script() {
+    # Ottiene la directory in cui si trova questo script
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    COMMON_SCRIPT_PATH="$SCRIPT_DIR/common-script.sh"
+    COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
+    
+    # Controlla se common-script.sh esiste nella stessa directory
+    if [ ! -f "$COMMON_SCRIPT_PATH" ]; then
+        echo -e "${YELLOW}common-script.sh non trovato in $SCRIPT_DIR${RESET}"
+        echo -e "${GREEN}Scaricando common-script.sh da GitHub...${RESET}"
+        
+        # Verifica se wget o curl sono disponibili
+        if command_exists wget; then
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        elif command_exists curl; then
+            curl -s "$COMMON_SCRIPT_URL" -o "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}È necessario wget o curl per scaricare common-script.sh${RESET}"
+            sudo pacman -S --noconfirm wget
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        fi
+        
+        # Verifica se il download è avvenuto con successo
+        if [ -f "$COMMON_SCRIPT_PATH" ]; then
+            echo -e "${GREEN}common-script.sh scaricato con successo${RESET}"
+            # Rendi il file eseguibile
+            chmod +x "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}Impossibile scaricare common-script.sh. Lo script potrebbe non funzionare correttamente.${RESET}"
+            exit 1
+        fi
+    fi
+    
+    # Include common-script.sh
+    . "$COMMON_SCRIPT_PATH"
+}
 
 installDepend() {
     DEPENDENCIES='wine dbus git'
@@ -679,17 +754,42 @@ installAdditionalDepend
 # ============= APPLICAZIONE TEMI ADDIZIONALI ============= #
 print_msg "Applicazione Temi Addizionali..."
 
-# Ottiene la directory in cui si trova questo script
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-# Controlla se common-script.sh esiste nella stessa directory
-if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
-    echo "common-script.sh non trovato in $SCRIPT_DIR"
-    exit 1
-fi
-
-# Include common-script.sh dalla stessa directory
-. "$SCRIPT_DIR/common-script.sh"
+get_common_script() {
+    # Ottiene la directory in cui si trova questo script
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    COMMON_SCRIPT_PATH="$SCRIPT_DIR/common-script.sh"
+    COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
+    
+    # Controlla se common-script.sh esiste nella stessa directory
+    if [ ! -f "$COMMON_SCRIPT_PATH" ]; then
+        echo -e "${YELLOW}common-script.sh non trovato in $SCRIPT_DIR${RESET}"
+        echo -e "${GREEN}Scaricando common-script.sh da GitHub...${RESET}"
+        
+        # Verifica se wget o curl sono disponibili
+        if command_exists wget; then
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        elif command_exists curl; then
+            curl -s "$COMMON_SCRIPT_URL" -o "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}È necessario wget o curl per scaricare common-script.sh${RESET}"
+            sudo pacman -S --noconfirm wget
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        fi
+        
+        # Verifica se il download è avvenuto con successo
+        if [ -f "$COMMON_SCRIPT_PATH" ]; then
+            echo -e "${GREEN}common-script.sh scaricato con successo${RESET}"
+            # Rendi il file eseguibile
+            chmod +x "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}Impossibile scaricare common-script.sh. Lo script potrebbe non funzionare correttamente.${RESET}"
+            exit 1
+        fi
+    fi
+    
+    # Include common-script.sh
+    . "$COMMON_SCRIPT_PATH"
+}
 
 install_theme_tools() {
     printf "%b\n" "${YELLOW}Installing theme tools (qt6ct and kvantum)...${RC}"
@@ -779,17 +879,42 @@ successOutput
 # ============= INSTALLAZIONE FONT ADDIZIONALI ============= #
 print_msg "Installazione Font Addizionali (orphans)..."
 
-# Ottiene la directory in cui si trova questo script
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-# Controlla se common-script.sh esiste nella stessa directory
-if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
-    echo "common-script.sh non trovato in $SCRIPT_DIR"
-    exit 1
-fi
-
-# Include common-script.sh dalla stessa directory
-. "$SCRIPT_DIR/common-script.sh"
+get_common_script() {
+    # Ottiene la directory in cui si trova questo script
+    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+    COMMON_SCRIPT_PATH="$SCRIPT_DIR/common-script.sh"
+    COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
+    
+    # Controlla se common-script.sh esiste nella stessa directory
+    if [ ! -f "$COMMON_SCRIPT_PATH" ]; then
+        echo -e "${YELLOW}common-script.sh non trovato in $SCRIPT_DIR${RESET}"
+        echo -e "${GREEN}Scaricando common-script.sh da GitHub...${RESET}"
+        
+        # Verifica se wget o curl sono disponibili
+        if command_exists wget; then
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        elif command_exists curl; then
+            curl -s "$COMMON_SCRIPT_URL" -o "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}È necessario wget o curl per scaricare common-script.sh${RESET}"
+            sudo pacman -S --noconfirm wget
+            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
+        fi
+        
+        # Verifica se il download è avvenuto con successo
+        if [ -f "$COMMON_SCRIPT_PATH" ]; then
+            echo -e "${GREEN}common-script.sh scaricato con successo${RESET}"
+            # Rendi il file eseguibile
+            chmod +x "$COMMON_SCRIPT_PATH"
+        else
+            echo -e "${RED}Impossibile scaricare common-script.sh. Lo script potrebbe non funzionare correttamente.${RESET}"
+            exit 1
+        fi
+    fi
+    
+    # Include common-script.sh
+    . "$COMMON_SCRIPT_PATH"
+}
 
 
 InstallTermiusFonts() {
