@@ -13,6 +13,7 @@ Script di configurazione automatica per sistemi basati su Arch Linux (come Endea
 - ✅ Installazione di Plexamp come AppImage
 - ✅ Installazione di Ollama per AI locale
 - ✅ Installazione di Chatbox Community edition per interagire con ollama
+- ✅ Installazione e configurazione di Temi e Font addizionali per il terminale
 - ✅ Installazione di una vasta gamma di applicazioni comuni:
   - Browser (Firefox, Brave, Chrome, Edge)
   - Strumenti di produttività (VSCode, OnlyOffice, Obsidian)
@@ -74,6 +75,7 @@ chmod +x install.sh
 - Freac
 - OBS Studio
 - Upscayl
+- Da Vinci Resolve (free Version)
 
 ### Comunicazione
 
@@ -101,6 +103,9 @@ chmod +x install.sh
 - qBittorrent
 - JDownloader2
 - FreeFileSync
+- Media Info
+- Responsively
+- Google Calendar Widget
 - Baobab (analizzatore di spazio su disco)
 - Fastfetch
 - HDSentinel

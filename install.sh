@@ -103,7 +103,8 @@ yay -S --needed --noconfirm \
     libratbag \
     hdsentinel \
     piper \
-    freefilesync-bin
+    freefilesync-bin \
+    mediainfo-gui
 
 # ----- Browser web e comunicazione -----
 print_msg "Installazione browser e app di comunicazione..."
@@ -117,7 +118,9 @@ yay -S --needed --noconfirm \
     thunderbird \
     localsend-bin \
     google-chrome \
-    microsoft-edge-stable
+    microsoft-edge-stable \
+    responsively \
+    google-calender-widget
 
 # ----- Multimedia e intrattenimento -----
 print_msg "Installazione applicazioni multimediali..."
@@ -131,7 +134,8 @@ yay -S --needed --noconfirm \
     youtube-to-mp3 \
     spotify \
     plexamp-appimage \
-    reaper
+    reaper \
+    davinci-resolve
 
 # ----- Download e condivisione file -----
 print_msg "Installazione app per download e condivisione file..."
@@ -175,74 +179,6 @@ yay -S --needed --noconfirm \
 print_msg "Installazione strumenti di compatibilità..."
 yay -S --needed --noconfirm \
     wine
-
-# =============  Installazione MH Audio Converter con Wine  ============= #
-print_msg "Installazione MH Audio Converter con Wine..."
-
-# Definizione delle variabili
-DOWNLOAD_URL="https://www.mediahuman.com/download/MHAudioConverter-x64.exe"
-DOWNLOAD_PATH="/tmp/MHAudioConverter-x64.exe"
-WINE_PREFIX="$HOME/.wine_mhaudioconverter"
-
-# Creazione della directory per il prefisso Wine (se non esiste)
-if [ ! -d "$WINE_PREFIX" ]; then
-    print_msg "Creazione di un nuovo prefisso Wine in $WINE_PREFIX..."
-    mkdir -p "$WINE_PREFIX"
-fi
-
-# Download del file
-print_msg "Download di MH Audio Converter..."
-if command_exists wget; then
-    wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL"
-elif command_exists curl; then
-    curl -L "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
-else
-    print_warn "È necessario installare wget o curl per scaricare MH Audio Converter."
-    # Prova ad installare wget
-    sudo pacman -S --noconfirm wget
-    if command_exists wget; then
-        wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL"
-    else
-        print_error "Impossibile installare wget o curl."
-    fi
-fi
-
-# Controllo se il download è andato a buon fine
-if [ ! -f "$DOWNLOAD_PATH" ]; then
-    print_warn "Download di MH Audio Converter fallito. Verificare la connessione internet."
-else
-    # Esecuzione dell'installer con Wine
-    print_msg "Installazione di MH Audio Converter con Wine..."
-    WINEPREFIX="$WINE_PREFIX" wine "$DOWNLOAD_PATH"
-
-    # Controllo del risultato dell'installazione
-    if [ $? -eq 0 ]; then
-        print_msg "Installazione di MH Audio Converter completata con successo!"
-        print_msg "Per avviare MH Audio Converter, usa: WINEPREFIX=\"$WINE_PREFIX\" wine \"$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe\""
-        
-        # Crea un lanciatore desktop
-        DESKTOP_DIR="$HOME/.local/share/applications"
-        mkdir -p "$DESKTOP_DIR"
-        
-        cat > "$DESKTOP_DIR/mhaudioconverter.desktop" << EOF
-[Desktop Entry]
-Name=MH Audio Converter
-Comment=MediaHuman Audio Converter
-Exec=env WINEPREFIX="$WINE_PREFIX" wine "$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe"
-Icon=$WINE_PREFIX/drive_c/Program\ Files/MediaHuman/Audio\ Converter/MHAudioConverter.exe
-Type=Application
-Categories=AudioVideo;Audio;
-EOF
-        
-        print_msg "Lanciatore desktop creato per MH Audio Converter."
-    else
-        print_warn "Si è verificato un errore durante l'installazione di MH Audio Converter."
-    fi
-
-    # Pulizia
-    print_msg "Pulizia dei file temporanei di MH Audio Converter..."
-    rm -f "$DOWNLOAD_PATH"
-fi
 
 # =============  Installazione fancontrol-gui  ============= #
 print_msg "Installazione fancontrol-gui..."
@@ -494,44 +430,508 @@ configureAutoCpufreq() {
 installAutoCpufreq
 configureAutoCpufreq
 
-# ============= CALCOLO DELLA DIRECTORY DELLO SCRIPT PRINCIPALE =============
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# ============= INSTALLAZIONE BOTTLES ============= #
+print_msg "Installazione e configurazione di BOTTLES..."
+# Ottiene la directory in cui si trova questo script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# ============= ESECUZIONE SCRIPT ESTERNI =============
-echo "==============================================="
-echo "AVVIO SCRIPT ESTERNI"
-echo "==============================================="
-echo ""
+# Controlla se common-script.sh esiste nella stessa directory
+if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
+    echo "common-script.sh non trovato in $SCRIPT_DIR"
+    exit 1
+fi
+
+# Include common-script.sh dalla stessa directory
+. "$SCRIPT_DIR/common-script.sh"
+
+installBottles() {
+    if ! command_exists com.usebottles.bottles; then
+        printf "%b\n" "${YELLOW}Installing Bottles...${RC}"
+        flatpak install -y flathub com.usebottles.bottles
+    else
+        printf "%b\n" "${GREEN}Bottles is already installed.${RC}"
+    fi
+}
+
+checkEnv
+checkEscalationTool
+checkFlatpak
+installBottles
+
+# ============= SETUP FAST FETCH ============= #
+print_msg "Configurazione di Fast Fetch..."
+
+# Ottiene la directory in cui si trova questo script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Controlla se common-script.sh esiste nella stessa directory
+if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
+    echo "common-script.sh non trovato in $SCRIPT_DIR"
+    exit 1
+fi
+
+# Include common-script.sh dalla stessa directory
+. "$SCRIPT_DIR/common-script.sh"
+
+installFastfetch() {
+    if ! command_exists fastfetch; then
+        printf "%b\n" "${YELLOW}Installing Fastfetch...${RC}"
+        case "$PACKAGER" in
+        pacman)
+            "$ESCALATION_TOOL" "$PACKAGER" -S --needed --noconfirm fastfetch
+            ;;
+        apt-get | nala)
+            curl -sSLo /tmp/fastfetch.deb https://github.com/fastfetch-cli/fastfetch/releases/latest/download/fastfetch-linux-amd64.deb
+            "$ESCALATION_TOOL" "$PACKAGER" install -y /tmp/fastfetch.deb
+            rm /tmp/fastfetch.deb
+            ;;
+        apk)
+            "$ESCALATION_TOOL" "$PACKAGER" add fastfetch
+            ;;
+        *)
+            "$ESCALATION_TOOL" "$PACKAGER" install -y fastfetch
+            ;;
+        esac
+    else
+        printf "%b\n" "${GREEN}Fastfetch is already installed.${RC}"
+    fi
+}
+
+setupFastfetchConfig() {
+    printf "%b\n" "${YELLOW}Copying Fastfetch config files...${RC}"
+    if [ -d "${HOME}/.config/fastfetch" ] && [ ! -d "${HOME}/.config/fastfetch-bak" ]; then
+        cp -r "${HOME}/.config/fastfetch" "${HOME}/.config/fastfetch-bak"
+    fi
+    mkdir -p "${HOME}/.config/fastfetch/"
+    curl -sSLo "${HOME}/.config/fastfetch/config.jsonc" https://raw.githubusercontent.com/ChrisTitusTech/mybash/main/config.jsonc
+}
+
+setupFastfetchShell() {
+    printf "%b\n" "${YELLOW}Configuring shell integration...${RC}"
+
+    current_shell=$(basename "$SHELL")
+    rc_file=""
+
+    case "$current_shell" in
+    "bash")
+        rc_file="$HOME/.bashrc"
+        ;;
+    "zsh")
+        rc_file="$HOME/.zshrc"
+        ;;
+    "fish")
+        rc_file="$HOME/.config/fish/config.fish"
+        ;;
+    "nu")
+        rc_file="$HOME/.config/nushell/config.nu"
+        ;;
+    *)
+        printf "%b\n" "${RED}$current_shell is not supported. Update your shell configuration manually.${RC}"
+        ;;
+    esac
+
+    if [ ! -f "$rc_file" ]; then
+        printf "%b\n" "${RED}Shell config file $rc_file not found${RC}"
+    else
+        if grep -q "fastfetch" "$rc_file"; then
+            printf "%b\n" "${YELLOW}Fastfetch is already configured in $rc_file${RC}"
+            return 0
+        else
+            printf "%b" "${GREEN}Would you like to add fastfetch to $rc_file? [y/N] ${RC}"
+            read -r response
+            if [ "$response" = "y" ] || [ "$response" = "Y" ]; then
+                printf "\n# Run fastfetch on shell initialization\nfastfetch\n" >>"$rc_file"
+                printf "%b\n" "${GREEN}Added fastfetch to $rc_file${RC}"
+            else
+                printf "%b\n" "${YELLOW}Skipped adding fastfetch to shell config${RC}"
+            fi
+        fi
+    fi
+
+}
+
+checkEnv
+checkEscalationTool
+installFastfetch
+setupFastfetchConfig
+setupFastfetchShell
+
+# ============= SETUP LIBRERIE ADDIZIONALI PER IL GAMING ============= #
+print_msg "Installazione addizionale librerie Gaming..."
+
+# Ottiene la directory in cui si trova questo script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Controlla se common-script.sh esiste nella stessa directory
+if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
+    echo "common-script.sh non trovato in $SCRIPT_DIR"
+    exit 1
+fi
+
+# Include common-script.sh dalla stessa directory
+. "$SCRIPT_DIR/common-script.sh"
+
+installDepend() {
+    DEPENDENCIES='wine dbus git'
+    printf "%b\n" "${YELLOW}Installing dependencies...${RC}"
+    case "$PACKAGER" in
+        pacman)
+            #Check for multilib
+            if ! grep -q "^\s*\[multilib\]" /etc/pacman.conf; then
+                echo "[multilib]" | "$ESCALATION_TOOL" tee -a /etc/pacman.conf
+                echo "Include = /etc/pacman.d/mirrorlist" | "$ESCALATION_TOOL" tee -a /etc/pacman.conf
+                "$ESCALATION_TOOL" "$PACKAGER" -Syu
+            else
+                printf "%b\n" "${GREEN}Multilib is already enabled.${RC}"
+            fi
+
+            DISTRO_DEPS="gnutls lib32-gnutls base-devel gtk2 gtk3 lib32-gtk2 lib32-gtk3 libpulse lib32-libpulse alsa-lib lib32-alsa-lib \
+                alsa-utils alsa-plugins lib32-alsa-plugins alsa-lib lib32-alsa-lib giflib lib32-giflib libpng lib32-libpng \
+                libldap lib32-libldap openal lib32-openal libxcomposite lib32-libxcomposite libxinerama lib32-libxinerama \
+                ncurses lib32-ncurses vulkan-icd-loader lib32-vulkan-icd-loader ocl-icd lib32-ocl-icd libva lib32-libva \
+                gst-plugins-base-libs lib32-gst-plugins-base-libs sdl2 lib32-sdl2 v4l-utils lib32-v4l-utils sqlite lib32-sqlite"
+
+            $AUR_HELPER -S --needed --noconfirm $DEPENDENCIES $DISTRO_DEPS
+            ;;
+        apt-get | nala)
+            DISTRO_DEPS="libasound2-plugins:i386 libsdl2-2.0-0:i386 libdbus-1-3:i386 libsqlite3-0:i386 wine64 wine32"
+
+            "$ESCALATION_TOOL" dpkg --add-architecture i386
+
+            if [ "$DTYPE" != "pop" ]; then
+                "$ESCALATION_TOOL" "$PACKAGER" install -y software-properties-common
+                "$ESCALATION_TOOL" apt-add-repository contrib -y
+            fi
+
+            "$ESCALATION_TOOL" "$PACKAGER" update
+            "$ESCALATION_TOOL" "$PACKAGER" install -y $DEPENDENCIES $DISTRO_DEPS
+            ;;
+        dnf)
+            if [ "$(rpm -E %fedora)" -le 41 ]; then
+                "$ESCALATION_TOOL" "$PACKAGER" install ffmpeg ffmpeg-libs -y
+                "$ESCALATION_TOOL" "$PACKAGER" install -y $DEPENDENCIES
+            else
+                printf "%b\n" "${CYAN}Fedora < 41 detected. Installing rpmfusion repos.${RC}"
+                "$ESCALATION_TOOL" "$PACKAGER" install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-"$(rpm -E %fedora)".noarch.rpm https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-"$(rpm -E %fedora)".noarch.rpm -y
+                "$ESCALATION_TOOL" "$PACKAGER" config-manager --enable fedora-cisco-openh264 -y
+                "$ESCALATION_TOOL" "$PACKAGER" install -y $DEPENDENCIES
+            fi
+            ;;
+        zypper)
+            "$ESCALATION_TOOL" "$PACKAGER" -n install $DEPENDENCIES
+            ;;
+        *)
+            printf "%b\n" "${RED}Unsupported package manager ${PACKAGER}${RC}"
+            exit 1
+            ;;
+    esac
+}
+
+installAdditionalDepend() {
+    case "$PACKAGER" in
+        pacman)
+            DISTRO_DEPS='steam lutris goverlay'
+            "$ESCALATION_TOOL" "$PACKAGER" -S --needed --noconfirm $DISTRO_DEPS
+            ;;
+        apt-get | nala)
+            version=$(git -c 'versionsort.suffix=-' ls-remote --tags --sort='v:refname' https://github.com/lutris/lutris |
+                grep -v 'beta' |
+                tail -n1 |
+                cut -d '/' --fields=3)
+
+            version_no_v=$(echo "$version" | tr -d v)
+            curl -sSLo "lutris_${version_no_v}_all.deb" "https://github.com/lutris/lutris/releases/download/${version}/lutris_${version_no_v}_all.deb"
+
+            printf "%b\n" "${YELLOW}Installing Lutris...${RC}"
+            "$ESCALATION_TOOL" "$PACKAGER" install -y ./lutris_"${version_no_v}"_all.deb
+
+            rm lutris_"${version_no_v}"_all.deb
+
+            printf "%b\n" "${GREEN}Lutris Installation complete.${RC}"
+            printf "%b\n" "${YELLOW}Installing steam...${RC}"
+
+            if lsb_release -i | grep -qi Debian; then
+                "$ESCALATION_TOOL" apt-add-repository non-free -y
+                "$ESCALATION_TOOL" "$PACKAGER" install steam-installer -y
+            else
+                "$ESCALATION_TOOL" "$PACKAGER" install -y steam
+            fi
+            ;;
+        dnf)
+            DISTRO_DEPS='steam lutris'
+            "$ESCALATION_TOOL" "$PACKAGER" install -y $DISTRO_DEPS
+            ;;
+        zypper)
+            DISTRO_DEPS='lutris'
+            "$ESCALATION_TOOL" "$PACKAGER" -n install $DISTRO_DEPS
+            ;;
+        *)
+            printf "%b\n" "${RED}Unsupported package manager ${PACKAGER}${RC}"
+            exit 1
+            ;;
+    esac
+}
+
+checkEnv
+checkAURHelper
+checkEscalationTool
+installDepend
+installAdditionalDepend
+
 
 # Lista degli script da eseguire
 EXTERNAL_SCRIPTS=(
-    "bottles-setup.sh"
-    "fastfetch-setup.sh"
-    "gaming-setup.sh"
     "global-theme.sh"
     "terminus-tty.sh"
 )
 
-# Esecuzione
-for SCRIPT in "${EXTERNAL_SCRIPTS[@]}"; do
-    SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT"
-    echo "Tentativo di esecuzione di $SCRIPT..."
-    
-    if [ -f "$SCRIPT_PATH" ]; then
-        echo "File $SCRIPT trovato. Esecuzione..."
-        chmod +x "$SCRIPT_PATH"
-        AUTOMATED=1 bash "$SCRIPT_PATH"
-        echo "Esecuzione di $SCRIPT completata."
-    else
-        echo "File $SCRIPT non trovato nella directory dello script principale ($SCRIPT_DIR)."
-    fi
-    
-    echo ""
-done
+# ============= APPLICAZIONE TEMI ADDIZIONALI ============= #
+print_msg "Applicazione Temi Addizionali..."
 
-echo "==============================================="
-echo "ESECUZIONE SCRIPT ESTERNI COMPLETATA"
-echo "==============================================="
+# Ottiene la directory in cui si trova questo script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Controlla se common-script.sh esiste nella stessa directory
+if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
+    echo "common-script.sh non trovato in $SCRIPT_DIR"
+    exit 1
+fi
+
+# Include common-script.sh dalla stessa directory
+. "$SCRIPT_DIR/common-script.sh"
+
+install_theme_tools() {
+    printf "%b\n" "${YELLOW}Installing theme tools (qt6ct and kvantum)...${RC}"
+    case "$PACKAGER" in
+        apt-get|nala)
+            "$ESCALATION_TOOL" "$PACKAGER" install -y qt6ct kvantum
+            ;;
+        zypper)
+            "$ESCALATION_TOOL" "$PACKAGER" --non-interactive install qt6ct kvantum
+            ;;
+        dnf)
+            "$ESCALATION_TOOL" "$PACKAGER" install -y qt6ct kvantum
+            ;;
+        pacman)
+            "$ESCALATION_TOOL" "$PACKAGER" -S --needed --noconfirm qt6ct kvantum
+            ;;
+        *)
+            printf "%b\n" "${RED}Unsupported package manager: ""$PACKAGER""${RC}"
+            exit 1
+            ;;
+    esac
+}
+
+applyTheming() {
+    printf "%b\n" "${YELLOW}Applying global theming...${RC}"
+    case "$XDG_CURRENT_DESKTOP" in
+        KDE)
+            lookandfeeltool -a org.kde.breezedark.desktop
+            successOutput
+            exit 0
+            ;;
+        GNOME)
+            gsettings set org.gnome.desktop.interface gtk-theme "Adwaita-dark"
+            gsettings set org.gnome.desktop.interface icon-theme "Adwaita"
+            successOutput
+            exit 0
+            ;;
+        *)
+            return
+            ;;
+    esac
+}
+
+configure_qt6ct() {
+    printf "%b\n" "${YELLOW}Configuring qt6ct...${RC}"
+    mkdir -p "$HOME/.config/qt6ct"
+    cat <<EOF > "$HOME/.config/qt6ct/qt6ct.conf"
+[Appearance]
+style=kvantum
+color_scheme=default
+icon_theme=breeze
+EOF
+    printf "%b\n" "${GREEN}qt6ct configured successfully.${RC}"
+
+    # Add QT_QPA_PLATFORMTHEME to /etc/environment
+    if ! grep -q "QT_QPA_PLATFORMTHEME=qt6ct" /etc/environment; then
+        printf "%b\n" "${YELLOW}Adding QT_QPA_PLATFORMTHEME to /etc/environment...${RC}"
+        echo "QT_QPA_PLATFORMTHEME=qt6ct" | "$ESCALATION_TOOL" tee -a /etc/environment > /dev/null
+        printf "%b\n" "${GREEN}QT_QPA_PLATFORMTHEME added to /etc/environment.${RC}"
+    else
+        printf "%b\n" "${GREEN}QT_QPA_PLATFORMTHEME already set in /etc/environment.${RC}"
+    fi
+}
+
+configure_kvantum() {
+    printf "%b\n" "${YELLOW}Configuring Kvantum...${RC}"
+    mkdir -p "$HOME/.config/Kvantum"
+    cat <<EOF > "$HOME/.config/Kvantum/kvantum.kvconfig"
+[General]
+theme=KvArcDark
+EOF
+    printf "%b\n" "${GREEN}Kvantum configured successfully.${RC}"
+}
+
+successOutput() {
+    printf "%b\n" "${GREEN}Global theming applied successfully.${RC}"
+}
+
+checkEnv
+checkEscalationTool
+applyTheming
+install_theme_tools
+configure_qt6ct
+configure_kvantum
+successOutput
+
+# ============= INSTALLAZIONE FONT ADDIZIONALI ============= #
+print_msg "Installazione Font Addizionali (orphans)..."
+
+# Ottiene la directory in cui si trova questo script
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# Controlla se common-script.sh esiste nella stessa directory
+if [ ! -f "$SCRIPT_DIR/common-script.sh" ]; then
+    echo "common-script.sh non trovato in $SCRIPT_DIR"
+    exit 1
+fi
+
+# Include common-script.sh dalla stessa directory
+. "$SCRIPT_DIR/common-script.sh"
+
+
+InstallTermiusFonts() {
+    if [ ! -f "/usr/share/kbd/consolefonts/ter-c18b.psf.gz" ] && 
+       [ ! -f "/usr/share/consolefonts/Uni3-TerminusBold18x10.psf.gz" ] && 
+       [ ! -f "/usr/lib/kbd/consolefonts/ter-p32n.psf.gz" ]; then
+    printf "%b\n" "${YELLOW}Installing Terminus Fonts...${RC}"
+        case "$PACKAGER" in
+            pacman)
+                "$ESCALATION_TOOL" "$PACKAGER" -S --needed --noconfirm terminus-font
+                ;;
+            apt-get|nala)
+                "$ESCALATION_TOOL" "$PACKAGER" install -y fonts-terminus
+                ;;
+            dnf)
+                "$ESCALATION_TOOL" "$PACKAGER" install -y terminus-fonts-console
+                ;;
+            *)
+                printf "%b\n" "${RED}Unsupported package manager: ""$PACKAGER""${RC}"
+                exit 1
+                ;;
+        esac
+    else
+        printf "%b\n" "${GREEN}Terminus Fonts is already installed.${RC}"
+    fi
+}
+
+SetTermiusFonts() {
+        case "$DTYPE" in
+            arch)
+                printf "%b\n" "${YELLOW}Updating FONT= line in /etc/vconsole.conf...${RC}"
+                "$ESCALATION_TOOL" sed -i 's/^FONT=.*/FONT=ter-v32b/' /etc/vconsole.conf
+                if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then
+                   "$ESCALATION_TOOL" setfont -C /dev/tty1 ter-v32b
+                fi
+                printf "%b\n" "${GREEN}Terminus font set for TTY.${RC}"
+                ;;
+            debian)
+                
+                printf "%b\n" "${YELLOW}Updating console-setup configuration...${RC}"
+                "$ESCALATION_TOOL" sed -i 's/^CODESET=.*/CODESET="guess"/' /etc/default/console-setup
+                "$ESCALATION_TOOL" sed -i 's/^FONTFACE=.*/FONTFACE="TerminusBold"/' /etc/default/console-setup
+                "$ESCALATION_TOOL" sed -i 's/^FONTSIZE=.*/FONTSIZE="16x32"/' /etc/default/console-setup
+                printf "%b\n" "${GREEN}Console-setup configuration updated for Terminus font.${RC}"
+                # Editing console-setup requires initramfs to be regenerated
+                "$ESCALATION_TOOL" update-initramfs -u
+                if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then                    
+                   "$ESCALATION_TOOL" setfont -C /dev/tty1 /usr/share/consolefonts/Uni3-TerminusBold32x16.psf.gz
+                fi
+                printf "%b\n" "${GREEN}Terminus font has been set for TTY.${RC}"
+                ;;
+            fedora)
+                printf "%b\n" "${YELLOW}Updating FONT= line in /etc/vconsole.conf...${RC}"
+                "$ESCALATION_TOOL" sed -i 's/^FONT=.*/FONT=ter-v32b/' /etc/vconsole.conf
+                if [ -z "$DISPLAY" ] && [ -z "$WAYLAND_DISPLAY" ]; then 
+                  "$ESCALATION_TOOL" setfont -C /dev/tty1 ter-v32b
+                fi               
+                printf "%b\n" "${GREEN}Terminus font has been set for TTY.${RC}"
+                ;;
+        esac
+}
+
+checkEnv
+InstallTermiusFonts
+SetTermiusFonts
+
+# =============  Installazione MH Audio Converter con Wine  ============= #
+print_msg "Installazione MH Audio Converter con Wine..."
+
+# Definizione delle variabili
+DOWNLOAD_URL="https://www.mediahuman.com/download/MHAudioConverter-x64.exe"
+DOWNLOAD_PATH="/tmp/MHAudioConverter-x64.exe"
+WINE_PREFIX="$HOME/.wine_mhaudioconverter"
+
+# Creazione della directory per il prefisso Wine (se non esiste)
+if [ ! -d "$WINE_PREFIX" ]; then
+    print_msg "Creazione di un nuovo prefisso Wine in $WINE_PREFIX..."
+    mkdir -p "$WINE_PREFIX"
+fi
+
+# Download del file
+print_msg "Download di MH Audio Converter..."
+if command_exists wget; then
+    wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL"
+elif command_exists curl; then
+    curl -L "$DOWNLOAD_URL" -o "$DOWNLOAD_PATH"
+else
+    print_warn "È necessario installare wget o curl per scaricare MH Audio Converter."
+    # Prova ad installare wget
+    sudo pacman -S --noconfirm wget
+    if command_exists wget; then
+        wget -O "$DOWNLOAD_PATH" "$DOWNLOAD_URL"
+    else
+        print_error "Impossibile installare wget o curl."
+    fi
+fi
+
+# Controllo se il download è andato a buon fine
+if [ ! -f "$DOWNLOAD_PATH" ]; then
+    print_warn "Download di MH Audio Converter fallito. Verificare la connessione internet."
+else
+    # Esecuzione dell'installer con Wine
+    print_msg "Installazione di MH Audio Converter con Wine..."
+    WINEPREFIX="$WINE_PREFIX" wine "$DOWNLOAD_PATH"
+
+    # Controllo del risultato dell'installazione
+    if [ $? -eq 0 ]; then
+        print_msg "Installazione di MH Audio Converter completata con successo!"
+        print_msg "Per avviare MH Audio Converter, usa: WINEPREFIX=\"$WINE_PREFIX\" wine \"$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe\""
+        
+        # Crea un lanciatore desktop
+        DESKTOP_DIR="$HOME/.local/share/applications"
+        mkdir -p "$DESKTOP_DIR"
+        
+        cat > "$DESKTOP_DIR/mhaudioconverter.desktop" << EOF
+[Desktop Entry]
+Name=MH Audio Converter
+Comment=MediaHuman Audio Converter
+Exec=env WINEPREFIX="$WINE_PREFIX" wine "$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe"
+Icon=$WINE_PREFIX/drive_c/Program\ Files/MediaHuman/Audio\ Converter/MHAudioConverter.exe
+Type=Application
+Categories=AudioVideo;Audio;
+EOF
+        
+        print_msg "Lanciatore desktop creato per MH Audio Converter."
+    else
+        print_warn "Si è verificato un errore durante l'installazione di MH Audio Converter."
+    fi
+
+    # Pulizia
+    print_msg "Pulizia dei file temporanei di MH Audio Converter..."
+    rm -f "$DOWNLOAD_PATH"
+fi
 
 # ============= PULIZIA DEL SISTEMA ============= #
 
@@ -543,6 +943,7 @@ if [ -n "$ORPHANS" ]; then
 else
     echo "Nessun pacchetto orfano da rimuovere."
 fi
+
 
 # Pulizia cache pacman
 print_msg "Pulizia cache pacman..."
