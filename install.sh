@@ -94,7 +94,35 @@ installAURHelper() {
     fi
 }
 
-# Installa pacchetti organizzati per categoria
+# Abilitare repository multilib per Steam
+enable_multilib() {
+    print_msg "Abilitazione del repository multilib per Steam..."
+    
+    # Verifica se multilib è già abilitato
+    if grep -q "^\[multilib\]" /etc/pacman.conf; then
+        print_success "Repository multilib già abilitato."
+        return 0
+    fi
+    
+    # Aggiungere multilib a pacman.conf
+    $ESCALATION_TOOL bash -c 'cat >> /etc/pacman.conf << EOF
+[multilib]
+Include = /etc/pacman.d/mirrorlist
+EOF'
+    
+    if [ $? -eq 0 ]; then
+        print_success "Repository multilib abilitato con successo."
+        # Aggiornare i database dei pacchetti
+        print_msg "Aggiornamento database pacchetti..."
+        $ESCALATION_TOOL pacman -Sy
+        return 0
+    else
+        print_error "Impossibile abilitare il repository multilib."
+        return 1
+    fi
+}
+
+# Installare pacchetti
 install_packages() {
     declare -A package_groups=(
         ["Utilità di sistema"]="ffmpeg timeshift"
@@ -102,7 +130,7 @@ install_packages() {
         ["Browser e comunicazione"]="firefox brave-bin discord zoom telegram-desktop whatsapp-linux-desktop thunderbird localsend-bin google-chrome microsoft-edge-stable"
         ["Multimedia"]="vlc handbrake mkvtoolnix-gui freac mp3tag obs-studio youtube-to-mp3 spotify plexamp-appimage reaper"
         ["Download e condivisione"]="qbittorrent jdownloader2 winscp rustdesk-bin"
-        ["Gaming"]="steam heroic-games-launcher-bin legendary"
+        ["Gaming"]=""  # Steam verrà installato separatamente
         ["Produttività"]="obsidian visual-studio-code-bin github-desktop-bin onlyoffice-bin jdk-openjdk enpass-bin simple-scan"
         ["Grafica"]="upscayl-bin occt"
         ["AI e machine learning"]="chatbox-ce-bin"
@@ -115,11 +143,71 @@ install_packages() {
         print_warn "Impossibile installare alcune dipendenze di base."
     }
 
+    # Installare Steam separatamente con gestione degli errori
+    install_steam
+    
+    # Installare Heroic Games Launcher separatamente
+    print_msg "Installazione di Heroic Games Launcher..."
+    $AUR_HELPER -S --needed --noconfirm heroic-games-launcher-bin || {
+        print_warn "Impossibile installare Heroic Games Launcher. Riprovare manualmente."
+    }
+    
+    # Installare Legendary separatamente
+    print_msg "Installazione di Legendary..."
+    $AUR_HELPER -S --needed --noconfirm legendary || {
+        print_warn "Impossibile installare Legendary. Riprovare manualmente."
+    }
+
+    # Installare altri pacchetti per categoria
     for category in "${!package_groups[@]}"; do
-        print_msg "Installazione: $category..."
-        $AUR_HELPER -S --needed --noconfirm ${package_groups[$category]} || \
-        print_warn "Alcuni pacchetti in '$category' non sono stati installati correttamente."
+        if [ -n "${package_groups[$category]}" ]; then
+            print_msg "Installazione: $category..."
+            
+            # Dividere e installare i pacchetti uno per uno per una migliore gestione degli errori
+            for package in ${package_groups[$category]}; do
+                print_msg "Installazione di $package..."
+                $AUR_HELPER -S --needed --noconfirm "$package" || {
+                    print_warn "Impossibile installare $package. Continuo con il prossimo pacchetto."
+                }
+            done
+        fi
     done
+}
+
+# Funzione dedicata per installare Steam con gestione avanzata delle dipendenze
+install_steam() {
+    print_msg "Installazione di Steam..."
+    
+    # Assicurarsi che multilib sia abilitato
+    enable_multilib
+    
+    # Installare le librerie necessarie per Steam prima di Steam stesso
+    print_msg "Installazione delle dipendenze di Steam..."
+    $ESCALATION_TOOL pacman -S --needed --noconfirm lib32-nvidia-utils lib32-mesa vulkan-icd-loader lib32-vulkan-icd-loader \
+                                             lib32-gnutls lib32-libpulse lib32-alsa-plugins lib32-gtk2 lib32-libva || {
+        print_warn "Alcune dipendenze di Steam non sono state installate correttamente."
+    }
+    
+    # Installare Steam
+    $ESCALATION_TOOL pacman -S --needed --noconfirm steam || {
+        print_error "Impossibile installare Steam tramite pacman. Tentativo con AUR..."
+        
+        # Tentativo con AUR
+        $AUR_HELPER -S --needed --noconfirm steam || {
+            print_error "Installazione di Steam fallita. Potrebbe essere necessario installarlo manualmente."
+            
+            # Mostrare informazioni diagnostiche
+            print_msg "Informazioni diagnostiche:"
+            print_msg "Controlla eventuali conflitti di pacchetti con: pacman -Qk"
+            print_msg "Per installare manualmente Steam, prova:"
+            print_msg "1. $ESCALATION_TOOL pacman -S steam --overwrite='*'"
+            print_msg "2. Oppure, se usare Flatpak: flatpak install flathub com.valvesoftware.Steam"
+            return 1
+        }
+    }
+    
+    print_success "Steam installato correttamente."
+    return 0
 }
 
 ### INIZIO ESECUZIONE ###
