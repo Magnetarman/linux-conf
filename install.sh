@@ -166,92 +166,29 @@ else
     print_msg "yay già installato."
 fi
 
-# ============= INSTALLAZIONE PACCHETTI CATEGORIZZATI ============= #
+install_packages() {
+    local -A package_groups=(
+        ["Utilità di sistema"]="ffmpeg"
+        ["Utilità AUR"]="p7zip p7zip-gui baobab fastfetch-git libratbag hdsentinel piper freefilesync-bin mediainfo-gui"
+        ["Browser e comunicazione"]="firefox brave-bin discord zoom telegram-desktop whatsapp-linux-desktop thunderbird localsend-bin google-chrome microsoft-edge-stable"
+        ["Multimedia"]="vlc handbrake mkvtoolnix-gui freac mp3tag obs-studio youtube-to-mp3 spotify plexamp-appimage reaper"
+        ["Download e condivisione"]="qbittorrent jdownloader2 winscp rustdesk-bin"
+        ["Gaming"]="steam heroic-games-launcher-bin legendary"
+        ["Produttività"]="obsidian visual-studio-code-bin github-desktop-bin onlyoffice-bin jdk-openjdk enpass-bin simple-scan"
+        ["Grafica"]="upscayl-bin occt"
+        ["AI e machine learning"]="chatbox-ce-bin"
+        ["Compatibilità"]="wine"
+    )
 
-# ----- Pacchetti di sistema e utilità -----
-print_msg "Installazione utilità di sistema..."
-sudo pacman -S --noconfirm ffmpeg
-yay -S --needed --noconfirm \
-    p7zip \
-    p7zip-gui \
-    baobab \
-    fastfetch-git \
-    libratbag \
-    hdsentinel \
-    piper \
-    freefilesync-bin \
-    mediainfo-gui
+    print_msg "Aggiornamento pacman & installazione python-pip, tk..."
+    sudo pacman -Syu --noconfirm
+    sudo pacman -S --noconfirm python-pip tk
 
-# ----- Browser web e comunicazione -----
-print_msg "Installazione browser e app di comunicazione..."
-yay -S --needed --noconfirm \
-    firefox \
-    brave-bin \
-    discord \
-    zoom \
-    telegram-desktop \
-    whatsapp-linux-desktop \
-    thunderbird \
-    localsend-bin \
-    google-chrome \
-    microsoft-edge-stable \
-
-# ----- Multimedia e intrattenimento -----
-print_msg "Installazione applicazioni multimediali..."
-yay -S --needed --noconfirm \
-    vlc \
-    handbrake \
-    mkvtoolnix-gui \
-    freac \
-    mp3tag \
-    obs-studio \
-    youtube-to-mp3 \
-    spotify \
-    plexamp-appimage \
-    reaper \
-
-# ----- Download e condivisione file -----
-print_msg "Installazione app per download e condivisione file..."
-yay -S --needed --noconfirm \
-    qbittorrent \
-    jdownloader2 \
-    winscp \
-    rustdesk-bin
-
-# ----- Giochi e piattaforme gaming -----
-print_msg "Installazione piattaforme di gaming..."
-yay -S --needed --noconfirm \
-    steam \
-    heroic-games-launcher-bin \
-    legendary
-
-# ----- Produttività e strumenti di lavoro -----
-print_msg "Installazione strumenti di produttività..."
-sudo pacman -S --noconfirm python-pip tk
-yay -S --needed --noconfirm \
-    obsidian \
-    visual-studio-code-bin \
-    github-desktop-bin \
-    onlyoffice-bin \
-    jdk-openjdk \
-    enpass-bin \
-    simple-scan
-
-# ----- Grafica e design -----
-print_msg "Installazione software per grafica..."
-yay -S --needed --noconfirm \
-    upscayl-bin \
-    occt
-
-# ----- AI e machine learning -----
-print_msg "Installazione di chatbox (GUI per Ollama)..."
-yay -S --needed --noconfirm \
-    chatbox-ce-bin
-
-# ----- Software di compatibilità -----
-print_msg "Installazione strumenti di compatibilità..."
-yay -S --needed --noconfirm \
-    wine
+    for category in "${!package_groups[@]}"; do
+        print_msg "Installazione $category..."
+        yay -S --needed --noconfirm ${package_groups[$category]}
+    done
+}
 
 # =============  Installazione fancontrol-gui  ============= #
 print_msg "Installazione fancontrol-gui..."
@@ -622,41 +559,30 @@ configureAutoCpufreq
 print_msg "Installazione e configurazione di BOTTLES..."
 
 get_common_script() {
-    # Ottiene la directory in cui si trova questo script
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    COMMON_SCRIPT_PATH="$SCRIPT_DIR/common-script.sh"
+   load_common_script() {
     COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
     
-    # Controlla se common-script.sh esiste nella stessa directory
-    if [ ! -f "$COMMON_SCRIPT_PATH" ]; then
-        echo -e "${YELLOW}common-script.sh non trovato in $SCRIPT_DIR${RESET}"
-        echo -e "${GREEN}Scaricando common-script.sh da GitHub...${RESET}"
-        
-        # Verifica se wget o curl sono disponibili
-        if command_exists wget; then
-            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
-        elif command_exists curl; then
-            curl -s "$COMMON_SCRIPT_URL" -o "$COMMON_SCRIPT_PATH"
-        else
-            echo -e "${RED}È necessario wget o curl per scaricare common-script.sh${RESET}"
-            sudo pacman -S --noconfirm wget
-            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
-        fi
-        
-        # Verifica se il download è avvenuto con successo
-        if [ -f "$COMMON_SCRIPT_PATH" ]; then
-            echo -e "${GREEN}common-script.sh scaricato con successo${RESET}"
-            # Rendi il file eseguibile
-            chmod +x "$COMMON_SCRIPT_PATH"
-        else
-            echo -e "${RED}Impossibile scaricare common-script.sh. Lo script potrebbe non funzionare correttamente.${RESET}"
-            return 1
-        fi
+    # Verifica se wget o curl sono disponibili
+    if command -v wget >/dev/null 2>&1; then
+        COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
+    elif command -v curl >/dev/null 2>&1; then
+        COMMON_SCRIPT_CONTENT=$(curl -s "$COMMON_SCRIPT_URL")
+    else
+        echo "Errore: né wget né curl sono installati. Installarne uno per continuare."
+        sudo pacman -S --noconfirm wget
+        COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
     fi
-    
-    # Include common-script.sh
-    . "$COMMON_SCRIPT_PATH"
+
+    # Controlla se lo script è stato scaricato correttamente
+    if [ -z "$COMMON_SCRIPT_CONTENT" ]; then
+        echo "Errore: impossibile caricare common-script.sh da $COMMON_SCRIPT_URL"
+        return 1
+    fi
+
+    # Esegui lo script scaricato
+    eval "$COMMON_SCRIPT_CONTENT"
     return 0
+   }
 }
 
 installBottles() {
@@ -1180,41 +1106,30 @@ configureAutoCpufreq
 print_msg "Installazione e configurazione di BOTTLES..."
 
 get_common_script() {
-    # Ottiene la directory in cui si trova questo script
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    COMMON_SCRIPT_PATH="$SCRIPT_DIR/common-script.sh"
+   load_common_script() {
     COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
     
-    # Controlla se common-script.sh esiste nella stessa directory
-    if [ ! -f "$COMMON_SCRIPT_PATH" ]; then
-        echo -e "${YELLOW}common-script.sh non trovato in $SCRIPT_DIR${RESET}"
-        echo -e "${GREEN}Scaricando common-script.sh da GitHub...${RESET}"
-        
-        # Verifica se wget o curl sono disponibili
-        if command_exists wget; then
-            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
-        elif command_exists curl; then
-            curl -s "$COMMON_SCRIPT_URL" -o "$COMMON_SCRIPT_PATH"
-        else
-            echo -e "${RED}È necessario wget o curl per scaricare common-script.sh${RESET}"
-            sudo pacman -S --noconfirm wget
-            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
-        fi
-        
-        # Verifica se il download è avvenuto con successo
-        if [ -f "$COMMON_SCRIPT_PATH" ]; then
-            echo -e "${GREEN}common-script.sh scaricato con successo${RESET}"
-            # Rendi il file eseguibile
-            chmod +x "$COMMON_SCRIPT_PATH"
-        else
-            echo -e "${RED}Impossibile scaricare common-script.sh. Lo script potrebbe non funzionare correttamente.${RESET}"
-            return 1
-        fi
+    # Verifica se wget o curl sono disponibili
+    if command -v wget >/dev/null 2>&1; then
+        COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
+    elif command -v curl >/dev/null 2>&1; then
+        COMMON_SCRIPT_CONTENT=$(curl -s "$COMMON_SCRIPT_URL")
+    else
+        echo "Errore: né wget né curl sono installati. Installarne uno per continuare."
+        sudo pacman -S --noconfirm wget
+        COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
     fi
-    
-    # Include common-script.sh
-    . "$COMMON_SCRIPT_PATH"
+
+    # Controlla se lo script è stato scaricato correttamente
+    if [ -z "$COMMON_SCRIPT_CONTENT" ]; then
+        echo "Errore: impossibile caricare common-script.sh da $COMMON_SCRIPT_URL"
+        return 1
+    fi
+
+    # Esegui lo script scaricato
+    eval "$COMMON_SCRIPT_CONTENT"
     return 0
+   }
 }
 
 installBottles() {
@@ -1561,40 +1476,30 @@ print_msg() {
 }
 
 get_common_script() {
-    # Ottiene la directory in cui si trova questo script
-    SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-    COMMON_SCRIPT_PATH="$SCRIPT_DIR/common-script.sh"
+    load_common_script() {
     COMMON_SCRIPT_URL="https://raw.githubusercontent.com/Magnetarman/linux-conf/main/common-script.sh"
     
-    # Controlla se common-script.sh esiste nella stessa directory
-    if [ ! -f "$COMMON_SCRIPT_PATH" ]; then
-        echo -e "${YELLOW}common-script.sh non trovato in $SCRIPT_DIR${RESET}"
-        echo -e "${GREEN}Scaricando common-script.sh da GitHub...${RESET}"
-        
-        # Verifica se wget o curl sono disponibili
-        if command_exists wget; then
-            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
-        elif command_exists curl; then
-            curl -s "$COMMON_SCRIPT_URL" -o "$COMMON_SCRIPT_PATH"
-        else
-            echo -e "${RED}È necessario wget o curl per scaricare common-script.sh${RESET}"
-            sudo pacman -S --noconfirm wget
-            wget -q "$COMMON_SCRIPT_URL" -O "$COMMON_SCRIPT_PATH"
-        fi
-        
-        # Verifica se il download è avvenuto con successo
-        if [ -f "$COMMON_SCRIPT_PATH" ]; then
-            echo -e "${GREEN}common-script.sh scaricato con successo${RESET}"
-            # Rendi il file eseguibile
-            chmod +x "$COMMON_SCRIPT_PATH"
-        else
-            echo -e "${RED}Impossibile scaricare common-script.sh. Lo script potrebbe non funzionare correttamente.${RESET}"
-            return 1  # Modifica: exit 1 -> return 1
-        fi
+    # Verifica se wget o curl sono disponibili
+    if command -v wget >/dev/null 2>&1; then
+        COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
+    elif command -v curl >/dev/null 2>&1; then
+        COMMON_SCRIPT_CONTENT=$(curl -s "$COMMON_SCRIPT_URL")
+    else
+        echo "Errore: né wget né curl sono installati. Installarne uno per continuare."
+        sudo pacman -S --noconfirm wget
+        COMMON_SCRIPT_CONTENT=$(wget -qO- "$COMMON_SCRIPT_URL")
     fi
-    
-    # Include common-script.sh
-    . "$COMMON_SCRIPT_PATH"
+
+    # Controlla se lo script è stato scaricato correttamente
+    if [ -z "$COMMON_SCRIPT_CONTENT" ]; then
+        echo "Errore: impossibile caricare common-script.sh da $COMMON_SCRIPT_URL"
+        return 1
+    fi
+
+    # Esegui lo script scaricato
+    eval "$COMMON_SCRIPT_CONTENT"
+    return 0
+   }
 }
 
 # Funzione per verificare l'ambiente
