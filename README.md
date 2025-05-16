@@ -121,14 +121,11 @@ Lo script esegue automaticamente diverse operazioni di manutenzione alla fine de
 - Rimozione di pacchetti orfani
 - Pulizia della cache pacchetti
 - Rimozione dei file temporanei
-
-## 🛠️ Personalizzazione
-
-Puoi modificare lo script per aggiungere o rimuovere pacchetti in base alle tue esigenze. Per aggiungere un nuovo pacchetto, trova la sezione appropriata nel file `install.sh` e aggiungi il nome del pacchetto all'elenco.
+- Rimozione LibreOffice da Linux Mint
 
 ## ⚠️ Note
 
-- Assicurati di avere abbastanza spazio su disco (>15 GB consigliati) prima di eseguire lo script.
+- Assicurati di avere abbastanza spazio su disco (>20 GB consigliati) prima di eseguire lo script.
 
 ## 🤝 Contribuire
 
