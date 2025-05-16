@@ -85,11 +85,12 @@ install_apt() {
 # Installazione Pacchetti Esterni
 install_external() {
     print_msg "Installazione pacchetti esterni in corso..."
-    bash "$SCRIPT_DIR/setup_external.sh"
+    bash "$SCRIPT_DIR/install_external.sh"
     print_success "Pacchetti esterni installati con successo."
     sleep 2
 }
 
+# Installazione Supporto Giochi
 setup_games() {
     print_msg "Installazione Driver e Supporto Giochi in corso..."
     bash "$SCRIPT_DIR/setup_games.sh"
@@ -97,73 +98,70 @@ setup_games() {
     sleep 2
 }
 
+# Installazione Prodotti MediaHuman
 setup_mh() {
-    # Installazione Prodotti MediaHuman
     print_msg "Installazione Prodotti MediaHuman in corso..."
-    bash "$SCRIPT_DIR/mh_setup.sh"
+    bash "$SCRIPT_DIR/setup_mh.sh"
     print_success "Prodotti MediaHuman installati con successo."
     sleep 2
 }
 
 # Installazione e Configurazione Ollama
 install_ollama() {
-    install_ollama() {
-        print_msg "Installazione Ollama..."
+    print_msg "Installazione Ollama..."
 
-        # Verifica dipendenze
-        apt install -y curl
+    # Verifica dipendenze
+    apt install -y curl
 
-        print_msg "Scarico lo script di installazione di Ollama..."
-        curl -fsSL https://ollama.com/install.sh -o install_ollama.sh
+    print_msg "Scarico lo script di installazione di Ollama..."
+    curl -fsSL https://ollama.com/install.sh -o install_ollama.sh
 
-        print_warn "Eseguo lo script..."
-        bash install_ollama.sh
+    print_warn "Eseguo lo script..."
+    bash install_ollama.sh
 
-        MODELS=("llama3" "mistral" "gemma" "codellama" "llava" "phi" "Nessun modello")
+    MODELS=("llama3" "mistral" "gemma" "codellama" "llava" "phi" "Nessun modello")
 
-        if ! command_exists ollama; then
-            print_error "Installazione di Ollama fallita."
-            return 1
-        else
-            print_success "Ollama installato correttamente."
-        fi
+    if ! command_exists ollama; then
+        print_error "Installazione di Ollama fallita."
+        return 1
+    else
+        print_success "Ollama installato correttamente."
+    fi
 
-        print_ask "Scegli un modello da installare:"
-        select MODEL in "${MODELS[@]}"; do
-            if [[ -n "$MODEL" ]]; then
-                if [[ "$MODEL" == "Nessun modello" ]]; then
-                    print_warn "ATTENZIONE !!! - Ollama non funziona senza un modello scaricato"
-                    MODEL="" # Nessun modello selezionato
-                else
-                    print_success "Hai selezionato il modello: $MODEL"
-                fi
-                break
+    print_ask "Scegli un modello da installare:"
+    select MODEL in "${MODELS[@]}"; do
+        if [[ -n "$MODEL" ]]; then
+            if [[ "$MODEL" == "Nessun modello" ]]; then
+                print_warn "ATTENZIONE !!! - Ollama non funziona senza un modello scaricato"
+                MODEL="" # Nessun modello selezionato
             else
-                print_error "Selezione non valida."
+                print_success "Hai selezionato il modello: $MODEL"
             fi
-        done
-
-        print_msg "Avvio del servizio ollama..."
-        systemctl enable --now ollama.service
-
-        if systemctl is-active --quiet ollama; then
-            print_success "Servizio ollama attivo."
-            if [[ -n "$MODEL" ]]; then
-                if ollama list | grep -q "^$MODEL[[:space:]]"; then
-                    print_warn "Il modello '$MODEL' è già installato."
-                    sleep 2
-                    print_warn "Salto il download."
-                else
-                    print_msg "Scarico il modello '$MODEL'..."
-                    ollama pull "$MODEL"
-                fi
-            fi
+            break
         else
-            print_error "Errore nell'avvio del servizio ollama."
-            return 1
+            print_error "Selezione non valida."
         fi
-    }
+    done
 
+    print_msg "Avvio del servizio ollama..."
+    systemctl enable --now ollama.service
+
+    if systemctl is-active --quiet ollama; then
+        print_success "Servizio ollama attivo."
+        if [[ -n "$MODEL" ]]; then
+            if ollama list | grep -q "^$MODEL[[:space:]]"; then
+                print_warn "Il modello '$MODEL' è già installato."
+                sleep 2
+                print_warn "Salto il download."
+            else
+                print_msg "Scarico il modello '$MODEL'..."
+                ollama pull "$MODEL"
+            fi
+        fi
+    else
+        print_error "Errore nell'avvio del servizio ollama."
+        return 1
+    fi
 }
 
 # Pulizia del Sistema post installazione
@@ -211,7 +209,7 @@ main() {
     install_flatpack # installazione di Flatpak e Snap
     setup_terminal   # installazione di MyBash, Starship, FZF, Zoxide, Fastfetch
     install_apt      # installazione pacchetti APT
-    setup_external   # installazione pacchetti esterni AppImage e DEB
+    install_external # installazione pacchetti esterni AppImage e DEB
     setup_games      # installazione driver e supporto giochi
     setup_mh         # installazione Prodotti MediaHuman
     install_ollama   # installazione di Ollama
