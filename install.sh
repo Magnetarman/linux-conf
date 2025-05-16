@@ -19,11 +19,8 @@ main() {
     echo -e "${BLUE}│${RESET}  ${CYAN} v1.0 Beta -- By Magnetarman  ${RESET}     ${BLUE}│${RESET}"
     echo -e "${BLUE}└───────────────────────────────────────────────────────────────────┘${RESET}\n"
     print_success "Benvenuto nel programma di installazione!"
-    print_warn "Inizializzazione script in corso... Attendere 3 secondi."
+    print_warn "Rilevamento del sistema operativo... Attendere 3 secondi."
     sleep 3
-
-    # Rilevamento distribuzione
-    print_msg "Rilevamento del sistema operativo..."
 
     if [ -f /etc/os-release ]; then
         . /etc/os-release
