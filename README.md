@@ -1,15 +1,14 @@
-# 🚀 Arch Linux Setup Automatico
+# 🤖 Auto Install Linux Script 🤖
 
-![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white)
-![Bash](https://img.shields.io/badge/Bash-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)
+![Linx Mint](https://img.shields.io/badge/Linux_Mint-92B662?style=for-the-badge&logo=linux-mint&logoColor=white)
+![Arch-Linux](https://img.shields.io/badge/Arch_linux-1793d1?style=for-the-badge&logo=Arch-linux&logoColor=white)
+![Bash](https://img.shields.io/badge/Bash-2b2b2b?style=for-the-badge&logo=gnu-bash&logoColor=white)
 
-Script di configurazione automatica per sistemi basati su Arch Linux (come EndeavourOS). Questo script installa e configura una selezione di applicazioni e strumenti comunemente utilizzati, ottimizza le impostazioni di sistema e configura i mirror per prestazioni ottimali.
+Script di configurazione automatica per sistemi basati su Ubuntu (come Linux Mint) ed Arch Linux (come Endeavouros). Questo script installa e configura una selezione di applicazioni e strumenti comunemente utilizzati, ottimizza le impostazioni di sistema e configura i mirror per prestazioni ottimali.
 
 ## 📋 Funzionalità
 
-- ✅ Ottimizzazione dei mirror per Italia, Germania e Francia
 - ✅ Aggiornamento completo del sistema
-- ✅ Installazione e configurazione di yay (gestore pacchetti AUR)
 - ✅ Installazione di Plexamp come AppImage
 - ✅ Installazione di Ollama per AI locale
 - ✅ Installazione di Chatbox Community edition per interagire con ollama
@@ -24,7 +23,7 @@ Script di configurazione automatica per sistemi basati su Arch Linux (come Endea
 
 ## 🔧 Prerequisiti
 
-- Sistema operativo basato su Arch Linux (come EndeavourOS, Manjaro, ecc.)
+- Sistema operativo basato su Ubuntu (come Linux Mint, Kubuntu ecc.)
 - Connessione internet
 - Privilegi di amministratore (sudo)
 
@@ -41,8 +40,6 @@ chmod +x install.sh
 
 ### Pacchetti di sistema
 
-- reflector (ottimizzazione mirror)
-- base-devel (strumenti di compilazione)
 - ffmpeg
 - python-pip
 - tk
@@ -52,7 +49,6 @@ chmod +x install.sh
 - Firefox
 - Brave
 - Google Chrome
-- Microsoft Edge
 
 ### Produttività e Ufficio
 
@@ -108,7 +104,6 @@ chmod +x install.sh
 - <del>Google Calendar Widget</del> (Scrica una repo da 40GB, qualcosa non quadra)
 - Baobab (analizzatore di spazio su disco)
 - Fastfetch
-- HDSentinel
 - Fancontrol-GUI (tramite script addizionale)
 - Piper (configurazione mouse)
 - Simplescan (scansione)
@@ -124,28 +119,16 @@ chmod +x install.sh
 Lo script esegue automaticamente diverse operazioni di manutenzione alla fine dell'installazione:
 
 - Rimozione di pacchetti orfani
-- Pulizia della cache di pacman
-- Pulizia della cache di yay
+- Pulizia della cache pacchetti
 - Rimozione dei file temporanei
-- Ottimizzazione dei log di sistema
 
 ## 🛠️ Personalizzazione
 
 Puoi modificare lo script per aggiungere o rimuovere pacchetti in base alle tue esigenze. Per aggiungere un nuovo pacchetto, trova la sezione appropriata nel file `install.sh` e aggiungi il nome del pacchetto all'elenco.
 
-```bash
-# Esempio: aggiungere un nuovo pacchetto
-yay -S --needed --noconfirm \
-    pacchetto-esistente \
-    nuovo-pacchetto \
-    altro-pacchetto
-```
-
 ## ⚠️ Note
 
-- Lo script utilizza i mirror di Italia, Germania e Francia. Se ti trovi in un'altra regione, modifica il comando `reflector`.
-- Alcuni pacchetti AUR potrebbero richiedere input manuale durante l'installazione, nonostante l'opzione `--noconfirm`.
-- Assicurati di avere abbastanza spazio su disco (>10 GB consigliati) prima di eseguire lo script.
+- Assicurati di avere abbastanza spazio su disco (>15 GB consigliati) prima di eseguire lo script.
 
 ## 🤝 Contribuire
 
