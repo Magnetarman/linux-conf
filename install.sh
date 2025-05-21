@@ -15,9 +15,10 @@ print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
 
 main() {
     echo -e "${BLUE}┌───────────────────────────────────────────────────────────────────┐${RESET}"
-    echo -e "${BLUE}│${RESET}  ${GREEN} Auto Install Linux Script  ${RESET}      ${BLUE}│${RESET}"
-    echo -e "${BLUE}│${RESET}  ${CYAN} v1.0 Beta -- By Magnetarman  ${RESET}     ${BLUE}│${RESET}"
-    echo -e "${BLUE}└───────────────────────────────────────────────────────────────────┘${RESET}\n"
+    echo -e "${BLUE}│${RESET}  ${GREEN} Auto Install Linux Script                       ${RESET}${BLUE}│${RESET}"
+    echo -e "${BLUE}│${RESET}  ${CYAN} v2.0 Beta -- By Magnetarman                     ${RESET}${BLUE}│${RESET}"
+    echo -e "${BLUE}└───────────────────────────────────────────────────────────────────┘${RESET}"
+    echo
     print_success "Benvenuto nel programma di installazione!"
     print_warn "Rilevamento del sistema operativo... Attendere 3 secondi."
     sleep 3

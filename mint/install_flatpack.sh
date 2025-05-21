@@ -42,7 +42,7 @@ setup_snap() {
         print_msg "Snap non è installato. Installazione in corso..."
         sudo apt-get update
         sudo apt-get install -y snapd || {
-            print_error "Installazione di Snap fallita."
+            print_warn "Installazione di Snap saltata."
             return 1
         }
         print_success "Snap installato correttamente."

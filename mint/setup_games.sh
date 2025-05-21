@@ -94,19 +94,6 @@ EOF
     print_success "Voce del menu creata per Bottles: $desktop_file"
 }
 
-# Installazione fancontrol (Inseirlo nella sezione Giochi)
-install_fancontrol() {
-    # Installazione fancontrol
-    print_msg "Controllo installazione fancontrol..."
-    if ! command_exists fancontrol; then
-        print_msg "Installazione di fancontrol in corso..."
-        apt install -y fancontrol lm-sensors || { print_error "Installazione di fancontrol fallita."; }
-        print_success "fancontrol installato con successo!"
-    else
-        print_warn "fancontrol è già installato."
-    fi
-}
-
 install_heroic() {
     # Installazione Heroic Games Launcher
     print_msg "Installazione di Heroic Games Launcher in corso..."
@@ -118,31 +105,6 @@ install_heroic() {
             return 1
         }
         print_success "Heroic Games Launcher installato correttamente."
-    fi
-
-    # Installazione Legendary
-    print_msg "Installazione di Legendary in corso..."
-    if command_exists legendary; then
-        print_success "Legendary è già installato."
-    else
-        # Utilizzare un ambiente virtuale per evitare l'errore externally-managed-environment
-        python3 -m venv "$HOME/.local/legendary-venv"
-        source "$HOME/.local/legendary-venv/bin/activate"
-        pip3 install legendary-gl || {
-            print_error "Installazione di Legendary fallita."
-            deactivate
-            return 1
-        }
-        deactivate
-
-        # Creare un symlink all'eseguibile nella directory .local/bin
-        mkdir -p "$HOME/.local/bin"
-        ln -sf "$HOME/.local/legendary-venv/bin/legendary" "$HOME/.local/bin/legendary" || {
-            print_error "Creazione del symlink fallita."
-            return 1
-        }
-
-        print_success "Legendary installato correttamente."
     fi
 
     # Gruppi e PATH
@@ -172,7 +134,6 @@ return_to_main() {
 main() {
     install_driver
     install_bottles
-    install_fancontrol
     install_heroic
     return_to_main
 }
