@@ -207,6 +207,61 @@ install_additional_fonts() {
     fi
 }
 
+# Installazione e configurazione alias utili
+
+install_alias() {
+    print_msg "Configurazione alias utili per il sistema..."
+
+    BASHRC_FILE="$HOME/.bashrc"
+    ALIASES_FILE="$HOME/.bash_aliases"
+
+    # Verifica se .bashrc carica già .bash_aliases
+    if ! grep -q "\.bash_aliases" "$BASHRC_FILE" 2>/dev/null; then
+        print_msg "Configurazione di .bashrc per caricare .bash_aliases..."
+
+        # Aggiungi il caricamento di .bash_aliases in .bashrc
+        cat >>"$BASHRC_FILE" <<'EOL'
+
+# Carica alias personalizzati se il file esiste
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+EOL
+    fi
+
+    # Crea il file .bash_aliases se non esiste
+    if [ ! -f "$ALIASES_FILE" ]; then
+        touch "$ALIASES_FILE"
+    fi
+
+    # Verifica se gli alias esistono già per evitare duplicati
+    if ! grep -q "alias upd=" "$ALIASES_FILE" 2>/dev/null; then
+        print_msg "Aggiunta alias per aggiornamento sistema..."
+        cat >>"$ALIASES_FILE" <<'EOL'
+
+# Alias per aggiornamento completo sistema
+alias upd='flatpak update && sudo apt update && sudo apt upgrade && sudo apt dist-upgrade'
+EOL
+    fi
+
+    if ! grep -q "alias clean=" "$ALIASES_FILE" 2>/dev/null; then
+        print_msg "Aggiunta alias per pulizia sistema..."
+        cat >>"$ALIASES_FILE" <<'EOL'
+
+# Alias per pulizia pacchetti inutilizzati
+alias clean='flatpak remove --unused && sudo apt autoremove'
+EOL
+    fi
+
+    # Ricarica .bashrc per rendere gli alias immediatamente disponibili
+    source "$BASHRC_FILE" >/dev/null 2>&1 || true
+
+    print_success "Alias configurati con successo."
+    print_msg "Alias disponibili:"
+    print_msg "  - upd: aggiornamento completo di flatpak e apt"
+    print_msg "  - clean: rimozione pacchetti non utilizzati da flatpak e apt"
+}
+
 # Funzione per ritornare allo script principale
 return_to_main() {
     print_msg "Ritornando allo script principale..."
@@ -218,6 +273,7 @@ main() {
     install_mybash
     setup_fastfetch
     install_additional_fonts
+    install_alias
     sleep 2
     print_warn "Riavvia la shell alla fine dello script per vedere i cambiamenti."
     sleep 5

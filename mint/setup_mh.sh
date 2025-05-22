@@ -118,25 +118,6 @@ install_mhaudioconverter() {
 
     DOWNLOAD_URL="https://www.mediahuman.com/download/MHAudioConverter-x64.exe"
     DOWNLOAD_PATH="/tmp/MHAudioConverter-x64.exe"
-    WINE_PREFIX="$HOME/.wine_mhaudioconverter"
-    MENU_DIR="$HOME/.local/share/applications"
-    ICON_DIR="$HOME/.local/share/icons/hicolor/128x128/apps"
-
-    # Rilevamento directory Desktop (gestisce anche nomi localizzati)
-    DESKTOP_DIR=$(xdg-user-dir DESKTOP)
-    if [ -z "$DESKTOP_DIR" ]; then
-        # Fallback se xdg-user-dir non è disponibile
-        if [ -d "$HOME/Desktop" ]; then
-            DESKTOP_DIR="$HOME/Desktop"
-        elif [ -d "$HOME/Scrivania" ]; then # Versione italiana
-            DESKTOP_DIR="$HOME/Scrivania"
-        else
-            print_warn "Directory Desktop non trovata. Il lanciatore desktop non sarà creato."
-        fi
-    fi
-
-    # Creazione delle directory necessarie
-    mkdir -p "$WINE_PREFIX" "$MENU_DIR" "$ICON_DIR"
 
     # Download installer
     print_msg "Download di MH Audio Converter..."
@@ -147,76 +128,65 @@ install_mhaudioconverter() {
 
     # Installazione con Wine
     print_msg "Esecuzione dell'installer..."
-    WINEPREFIX="$WINE_PREFIX" wine "$DOWNLOAD_PATH" /SILENT || {
+    wine "$DOWNLOAD_PATH" /SILENT || {
         print_warn "Installazione manuale richiesta."
         print_ask "Completa l'installazione nella finestra e premi Invio quando hai terminato..."
         read -r
     }
 
-    EXEC_PATH="$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe"
+    # Creazione directory per i lanciatori
+    MENU_DIR="$HOME/.local/share/applications/wine/Programs/MediaHuman/Audio Converter"
+    mkdir -p "$MENU_DIR"
 
-    if [ ! -f "$EXEC_PATH" ]; then
-        print_warn "Ricerca alternativa dell'eseguibile..."
-        POSSIBLE_EXEC=$(find "$WINE_PREFIX/drive_c" -name "MHAudioConverter.exe" -type f 2>/dev/null | head -n 1)
-        if [ -n "$POSSIBLE_EXEC" ]; then
-            EXEC_PATH="$POSSIBLE_EXEC"
-            print_msg "Eseguibile trovato: $EXEC_PATH"
-        else
-            print_error "Eseguibile non trovato."
-            exit 1
-        fi
-    fi
-
-    # Creazione dell'icona
-    ICON_PATH="$ICON_DIR/mhaudioconverter.png"
-    mkdir -p "$ICON_DIR"
-    wget -q -O "$ICON_PATH" "https://www.mediahuman.com/img/logos/audio-converter@2x.webp" || print_warn "Icona non scaricata."
-
-    # Creazione lanciatore nel menu
+    # Creazione lanciatore nel menu delle applicazioni
     print_msg "Creazione del lanciatore nel menu..."
-    cat >"$MENU_DIR/mhaudioconverter.desktop" <<EOF
+    cat >"$MENU_DIR/MediaHuman Audio Converter.desktop" <<EOF
 [Desktop Entry]
-Version=1.0
-Name=MH Audio Converter
-Comment=Convertitore audio multimediale
-Exec=env WINEPREFIX="$WINE_PREFIX" wine "$EXEC_PATH"
-Icon=mhaudioconverter
+Name=MediaHuman Audio Converter
+Exec=env WINEPREFIX="/home/magnetarman/.wine" wine-stable C:\\\\ProgramData\\\\Microsoft\\\\Windows\\\\Start\\ Menu\\\\Programs\\\\MediaHuman\\\\Audio\\ Converter\\\\MediaHuman\\ Audio\\ Converter.lnk
 Type=Application
-Categories=AudioVideo;Audio;
-Terminal=false
 StartupNotify=true
-MimeType=audio/mpeg;audio/mp4;audio/flac;audio/ogg;audio/wav;
+Icon=974A_MHAudioConverter.0
 EOF
-    chmod +x "$MENU_DIR/mhaudioconverter.desktop"
 
-    # Aggiornamento del database delle applicazioni e cache delle icone
-    print_msg "Aggiornamento della cache del menu delle applicazioni..."
-    update-desktop-database "$MENU_DIR" 2>/dev/null || true
-    gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor 2>/dev/null || true
+    # Creazione lanciatore desktop
+    print_msg "Creazione del lanciatore sul desktop..."
+    DESKTOP_DIR=""
 
-    # Forza aggiornamento menu per Linux Mint
-    print_msg "Aggiornamento del menu di sistema..."
-    if command -v cinnamon-menu-editor >/dev/null 2>&1; then
-        # Specifico per Cinnamon (Linux Mint)
-        timeout 2s cinnamon-menu-editor >/dev/null 2>&1 || true
+    # Usa xdg-user-dir se disponibile
+    if command -v xdg-user-dir >/dev/null 2>&1; then
+        DESKTOP_DIR=$(xdg-user-dir DESKTOP 2>/dev/null)
     fi
 
-    # Lanciatore sul desktop
-    if [ -n "$DESKTOP_DIR" ] && [ -d "$DESKTOP_DIR" ]; then
-        print_msg "Creazione del lanciatore sul desktop in: $DESKTOP_DIR"
-        cp "$MENU_DIR/mhaudioconverter.desktop" "$DESKTOP_DIR/mhaudioconverter.desktop"
-        chmod +x "$DESKTOP_DIR/mhaudioconverter.desktop"
+    # Fallback per le directory comuni
+    if [ -z "$DESKTOP_DIR" ] || [ ! -d "$DESKTOP_DIR" ]; then
+        for desktop_candidate in "$HOME/Desktop" "$HOME/Scrivania"; do
+            if [ -d "$desktop_candidate" ] && [ -w "$desktop_candidate" ]; then
+                DESKTOP_DIR="$desktop_candidate"
+                break
+            fi
+        done
+    fi
+
+    # Crea il lanciatore sul desktop se possibile
+    if [ -n "$DESKTOP_DIR" ] && [ -d "$DESKTOP_DIR" ] && [ -w "$DESKTOP_DIR" ]; then
+        cat >"$DESKTOP_DIR/MediaHuman Audio Converter.desktop" <<EOF
+[Desktop Entry]
+Name=MediaHuman Audio Converter
+Exec=env WINEPREFIX="/home/magnetarman/.wine" wine-stable C:\\\\Program\\ Files\\\\MediaHuman\\\\Audio\\ Converter\\\\MHAudioConverter.exe 
+Type=Application
+StartupNotify=true
+Path=/home/magnetarman/.wine/dosdevices/c:/Program Files/MediaHuman/Audio Converter
+Icon=974A_MHAudioConverter.0
+StartupWMClass=mhaudioconverter.exe
+EOF
+        chmod +x "$DESKTOP_DIR/MediaHuman Audio Converter.desktop"
         print_success "Lanciatore creato sul desktop."
     else
-        print_warn "Directory Desktop non trovata o non accessibile."
+        print_warn "Directory Desktop non accessibile."
     fi
 
-    # Registra l'applicazione come handler predefinito per alcuni formati audio
-    print_msg "Registrazione dei tipi MIME..."
-    xdg-mime default mhaudioconverter.desktop audio/mpeg audio/mp4 audio/flac audio/ogg audio/wav 2>/dev/null || true
-
     # Pulizia
-    print_msg "Pulizia dei file temporanei..."
     rm -f "$DOWNLOAD_PATH"
 
     print_success "Installazione di MH Audio Converter completata!"

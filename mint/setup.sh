@@ -34,7 +34,7 @@ print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
 show_title() {
     clear
     echo -e "${BLUE}┌───────────────────────────────────────────────────────────────────────────┐${RESET}"
-    echo -e "${BLUE}│${RESET}  ${GREEN} Auto Install - Mint Version ${RESET}             ${BLUE}│${RESET}"
+    echo -e "${BLUE}│${RESET}  ${GREEN} Auto Install - Mint Version ${RESET}              ${BLUE}│${RESET}"
     echo -e "${BLUE}│${RESET}  ${CYAN} v2.0 Beta -- By Magnetarman  ${RESET}             ${BLUE}│${RESET}"
     echo -e "${BLUE}└───────────────────────────────────────────────────────────────────────────┘${RESET}\n"
     print_success "Benvenuto nel programma di installazione!"
@@ -164,36 +164,6 @@ install_ollama() {
     fi
 }
 
-# Installazione e configurazione alias utili
-install_alias() {
-    print_msg "Configurazione alias utili per il sistema..."
-
-    ALIASES_FILE="$HOME/.bash_aliases"
-
-    # Crea il file se non esiste
-    if [ ! -f "$ALIASES_FILE" ]; then
-        touch "$ALIASES_FILE"
-    fi
-
-    # Aggiungi gli alias richiesti
-    cat >>"$ALIASES_FILE" <<'EOL'
-# Alias per aggiornamento completo sistema
-alias upd='snap refresh && flatpak update && sudo apt update && sudo apt upgrade'
-
-# Alias per pulizia pacchetti inutilizzati
-alias clean='flatpak remove --unused && sudo apt autoremove'
-EOL
-
-    # Ricarica il file .bashrc per rendere gli alias immediatamente disponibili
-    source "$HOME/.bashrc" >/dev/null 2>&1 || true
-
-    print_success "Alias configurati con successo."
-    print_msg "Alias disponibili:"
-    print_msg "  - upd: aggiornamento completo di snap, flatpak e apt"
-    print_msg "  - clean: rimozione pacchetti non utilizzati da flatpak e apt"
-    sleep 2
-}
-
 # Pulizia del Sistema post installazione
 clean_os() {
     print_msg "Pulizia pacchetti inutilizzati..."
@@ -237,13 +207,12 @@ main() {
     show_title       # Show Titolo Script
     setup_system     # Ottimizzazione mirror e aggiornamento sistema
     install_flatpack # installazione di Flatpak e Snap
-    setup_terminal   # installazione di MyBash, Starship, FZF, Zoxide, Fastfetch
+    setup_terminal   # installazione di MyBash, Starship, FZF, Zoxide, Fastfetch, installazione alias
     install_apt      # installazione pacchetti APT
     install_external # installazione pacchetti esterni AppImage, DEB, Installazioni avanzate
     setup_games      # installazione driver e supporto giochi
     setup_mh         # installazione Prodotti MediaHuman
     install_ollama   # installazione di Ollama
-    install_alias    # installazione alias utili terminale
     print_success "✅✅✅ Installazione completata con successo! ✅✅✅"
     clean_os
     print_warn "🔧🔧🔧 Pulizia Completa! Riavviare il Sistema! 🔧🔧🔧"

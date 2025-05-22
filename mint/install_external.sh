@@ -165,7 +165,6 @@ install_flatpak_apps() {
         "com.rustdesk.RustDesk"
         "org.freac.freac"
         "org.freefilesync.FreeFileSync"
-        "com.discordapp.Discord"
         "io.github.jonmagon.kdiskmark"
         "com.geeks3d.furmark"
         "io.github.wiiznokes.fan-control"
@@ -290,111 +289,71 @@ install_reaper() {
     echo 'export PATH="$PATH:$HOME/.local/bin"' >>~/.bashrc
 }
 
-# Installazione Da Vinci Resolve
 install_davinci_resolve() {
-    print_msg "Installazione Da Vinci Resolve (Metodo Alternativo)..."
+    print_msg "Installazione DaVinci Resolve"
 
-    # Salva lo stato dei privilegi attuali
-    local is_sudo=0
-    if [ "$EUID" -eq 0 ]; then
-        is_sudo=1
-        # Se stiamo eseguendo come root, diventa l'utente reale
-        local real_user=$(logname 2>/dev/null || echo $SUDO_USER)
-        
-        if [ -z "$real_user" ]; then
-            print_error "Impossibile determinare l'utente reale. Uscita."
+    # Richiedi all'utente di incollare il link diretto al file .deb
+    print_warn "Per installare DaVinci Resolve è necessario il link diretto al file .deb"
+    read -p "Incolla qui il link diretto al file .deb: " deb_url
+
+    # Verifica che l'URL non sia vuoto
+    if [ -z "$deb_url" ]; then
+        print_error "Errore: Nessun URL fornito. Installazione annullata."
+        return 1
+    fi
+
+    # Verifica che l'URL termini con .deb
+    if [[ ! "$deb_url" =~ \.deb$ ]]; then
+        print_warn "Attenzione: L'URL fornito non sembra essere un file .deb"
+        read -p "Vuoi continuare comunque? (y/n): " continue_anyway
+        if [[ ! "$continue_anyway" =~ ^[Yy]$ ]]; then
+            echo "Installazione annullata."
             return 1
         fi
-        
-        print_warn "Passaggio temporaneo alla modalità utente normale..."
-        
-        # Salva l'utente sudo originale e la home
-        SUDO_ORIGINAL_USER="$real_user"
-        SUDO_ORIGINAL_HOME=$(eval echo ~$real_user)
-        
-        # Esegui la parte non-sudo come l'utente reale
-        sudo -u "$real_user" bash -c "$(declare -f install_davinci_resolve_as_user); install_davinci_resolve_as_user"
-        local result=$?
-        
-        print_warn "Ripristino modalità sudo..."
-        return $result
-    else
-        # Se non stiamo eseguendo come root, esegui direttamente
-        install_davinci_resolve_as_user
-        return $?
     fi
-}
 
-# Funzione che deve essere eseguita come utente normale
-install_davinci_resolve_as_user() {
-    print_msg "Avvio installazione DaVinci Resolve come utente normale..."
+    # Nome del file temporaneo
+    temp_file="/tmp/davinci-resolve.deb"
 
-    # Determina l'utente e la home
-    ACTUAL_USER="${USER}"
-    USER_HOME="$HOME"
-    INSTALL_DIR="$USER_HOME/resolve-install"
+    print_msg "Download del file .deb in corso..."
 
-    # Crea directory e spostati
-    mkdir -p "$INSTALL_DIR" && cd "$INSTALL_DIR" || {
-        print_error "Impossibile accedere a $INSTALL_DIR"
+    # Scarica il file .deb
+    if wget -O "$temp_file" "$deb_url"; then
+        print_success "Download completato con successo"
+    else
+        print_error "Errore: Download fallito. Verifica l'URL e la connessione internet."
         return 1
-    }
+    fi
 
-    # Richiedi link manuale
-    print_ask "Incolla il link temporaneo da https://www.blackmagicdesign.com/support/downloads/"
-    print_ask "Assicurati di copiare il link diretto al file .zip."
-    read -p "Link: " RESOLVE_URL
+    # Verifica che il file sia stato scaricato
+    if [ ! -f "$temp_file" ]; then
+        print_error "Errore: File non trovato dopo il download."
+        return 1
+    fi
 
-    # Scarica solo se il file non esiste
-    if [ ! -f DaVinci_Resolve.zip ]; then
-        wget -O DaVinci_Resolve.zip "$RESOLVE_URL" || {
-            print_error "Download fallito. Controlla il link."
+    print_warn "Installazione del pacchetto .deb in corso..."
+
+    # Installa il pacchetto .deb
+    if sudo dpkg -i "$temp_file"; then
+        print_success "Installazione completata con successo"
+    else
+        print_error "Errore durante l'installazione. Tentativo di risoluzione delle dipendenze..."
+        # Risolvi eventuali dipendenze mancanti
+        sudo apt-get install -f -y
+
+        # Riprova l'installazione
+        if sudo dpkg -i "$temp_file"; then
+            print_success "Installazione completata dopo la risoluzione delle dipendenze"
+        else
+            print_error "Errore: Installazione fallita. Controlla i log per maggiori dettagli."
             return 1
-        }
-    else
-        print_warn "File DaVinci_Resolve.zip già presente. Skipping download."
+        fi
     fi
 
-    # Verifica esistenza e decomprimi
-    [ -f DaVinci_Resolve.zip ] || {
-        print_error "File DaVinci_Resolve.zip non trovato."
-        return 1
-    }
+    # Rimuovi il file temporaneo
+    rm -f "$temp_file"
 
-    unzip -o DaVinci_Resolve.zip || {
-        print_error "Errore durante l'estrazione del file ZIP."
-        return 1
-    }
-
-    # Cerca l'installer
-    print_msg "Ricerca dell'installer..."
-    INSTALLER=$(find "$INSTALL_DIR" -type f -name "DaVinci_Resolve*.run" | head -1)
-
-    if [ -z "$INSTALLER" ]; then
-        print_error "Installer non trovato!"
-        return 1
-
-    chmod +x "$INSTALLER" || {
-        print_error "Impossibile rendere eseguibile l'installer."
-        return 1
-    }
-
-    # Esegui l'installer
-    print_warn "Avvio dell'installer. Potrebbe essere richiesta la password di amministratore."
-    bash "$INSTALLER"
-
-    # Pulizia
-    print_msg "Pulizia dei file di installazione..."
-    read -rp "Eliminare i file di installazione? (y/n): " clean_choice
-    if [[ "$clean_choice" =~ ^[Yy]$ ]]; then
-        rm -rf "$INSTALL_DIR"
-        print_success "File rimossi."
-    else
-        print_warn "File mantenuti in $INSTALL_DIR"
-    fi
-
-    print_success "Installazione DaVinci Resolve completata."
-    return 0
+    print_success "DaVinci Resolve installato con successo!"
 }
 
 # Aggiungi le directory al PATH se non già presenti
