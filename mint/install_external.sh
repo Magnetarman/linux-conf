@@ -113,12 +113,6 @@ install_pkgs() {
     done
 }
 
-# Installa WhatsApp
-install_whatsapp() {
-    print_msg "Installazione WhatsApp..."
-    snap install whatsapp-desktop-client
-}
-
 # Installa Spotify con metodo alternativo
 install_spotify() {
     print_warn "Installazione Spotify (metodo alternativo)..."
@@ -292,68 +286,223 @@ install_reaper() {
 install_davinci_resolve() {
     print_msg "Installazione DaVinci Resolve"
 
-    # Richiedi all'utente di incollare il link diretto al file .deb
-    print_warn "Per installare DaVinci Resolve è necessario il link diretto al file .deb"
-    read -p "Incolla qui il link diretto al file .deb: " deb_url
+    # Identifica la cartella dello script
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    print_msg "Directory dello script: $script_dir"
 
-    # Verifica che l'URL non sia vuoto
-    if [ -z "$deb_url" ]; then
-        print_error "Errore: Nessun URL fornito. Installazione annullata."
-        return 1
+    # Controlla modalità sudo e riavvia come utente normale se necessario
+    if [ "$EUID" -eq 0 ]; then
+        print_warn "Rilevata modalità sudo. Avvio sessione temporanea non-sudo per questa funzione..."
+        [ -z "$SUDO_USER" ] && {
+            print_error "Impossibile determinare l'utente originale. Esci dalla modalità sudo manualmente."
+            return 1
+        }
+        sudo -u "$SUDO_USER" bash -c "$(declare -f install_davinci_resolve print_msg print_warn print_error print_success print_ask); cd '$script_dir'; install_davinci_resolve"
+        return $?
     fi
 
-    # Verifica che l'URL termini con .deb
-    if [[ ! "$deb_url" =~ \.deb$ ]]; then
-        print_warn "Attenzione: L'URL fornito non sembra essere un file .deb"
+    # Installa wget se necessario
+    command -v wget &>/dev/null || {
+        print_msg "Installazione di wget..."
+        sudo apt-get update && sudo apt-get install -y wget || {
+            print_error "Errore nell'installazione di wget"
+            return 1
+        }
+    }
+
+    # Setup directory temporanea
+    temp_dir="/tmp/davinci-resolve-install"
+    rm -rf "$temp_dir" && mkdir -p "$temp_dir"
+
+    # Opzioni di download
+    print_msg "Opzioni di download disponibili:"
+    print_msg "1. Download automatico (richiede link diretto al file zip)"
+    print_msg "2. Usa file zip già scaricato localmente"
+    read -p "Scegli un'opzione (1 o 2): " download_option
+
+    case $download_option in
+    1) # Download automatico
+        cat <<'EOF'
+Per ottenere il link diretto:
+1. Vai su: https://www.blackmagicdesign.com/support/downloads/
+2. Cerca 'DaVinci Resolve' nella sezione Video Editing
+3. Clicca su 'Download Now' per la versione Linux
+4. Compila il form di registrazione
+5. Dopo aver cliccato 'Download Now', copia il link del download
+   (fai clic destro sul pulsante di download e seleziona 'Copia indirizzo link')
+EOF
+        read -p "Incolla qui il link diretto al download: " download_url
+        [ -z "$download_url" ] && {
+            print_error "Nessun URL fornito. Installazione annullata."
+            rm -rf "$temp_dir"
+            return 1
+        }
+
+        download_url=$(echo "$download_url" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        zip_filename=$(basename "$download_url" | cut -d'?' -f1)
+        [[ ! "$zip_filename" =~ \.zip$ ]] && zip_filename="davinci-resolve.zip"
+        zip_path="$temp_dir/$zip_filename"
+
+        print_msg "Download di DaVinci Resolve in corso..."
+        print_warn "Questo processo potrebbe richiedere diversi minuti..."
+        wget --progress=bar:force:noscroll -O "$zip_path" "$download_url" 2>&1 || {
+            print_error "Errore durante il download"
+            rm -rf "$temp_dir"
+            return 1
+        }
+        ;;
+
+    2) # File locale
+        print_ask "Assicurati di aver già scaricato il file .zip di DaVinci Resolve da:"
+        print_ask "https://www.blackmagicdesign.com/support/downloads/"
+        read -p "Incolla qui il percorso completo del file .zip: " local_zip_path
+        [ -z "$local_zip_path" ] && {
+            print_error "Nessun percorso fornito. Installazione annullata."
+            rm -rf "$temp_dir"
+            return 1
+        }
+
+        local_zip_path=$(echo "$local_zip_path" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed "s/^['\"]//;s/['\"]$//")
+        [ ! -f "$local_zip_path" ] && {
+            print_error "File non trovato: $local_zip_path"
+            rm -rf "$temp_dir"
+            return 1
+        }
+
+        zip_filename=$(basename "$local_zip_path")
+        zip_path="$temp_dir/$zip_filename"
+        print_msg "Copia del file nella directory temporanea..."
+        cp "$local_zip_path" "$zip_path" || {
+            print_error "Errore nella copia del file"
+            rm -rf "$temp_dir"
+            return 1
+        }
+        ;;
+
+    *)
+        print_error "Opzione non valida. Installazione annullata."
+        rm -rf "$temp_dir"
+        return 1
+        ;;
+    esac
+
+    # Verifica file zip
+    [[ ! "$zip_path" =~ \.zip$ ]] && {
+        print_warn "Il file fornito non sembra essere un file .zip"
         read -p "Vuoi continuare comunque? (y/n): " continue_anyway
-        if [[ ! "$continue_anyway" =~ ^[Yy]$ ]]; then
+        [[ ! "$continue_anyway" =~ ^[Yy]$ ]] && {
             echo "Installazione annullata."
+            rm -rf "$temp_dir"
             return 1
-        fi
-    fi
+        }
+    }
 
-    # Nome del file temporaneo
-    temp_file="/tmp/davinci-resolve.deb"
-
-    print_msg "Download del file .deb in corso..."
-
-    # Scarica il file .deb
-    if wget -O "$temp_file" "$deb_url"; then
-        print_success "Download completato con successo"
-    else
-        print_error "Errore: Download fallito. Verifica l'URL e la connessione internet."
+    [ ! -f "$zip_path" ] && {
+        print_error "File zip non trovato in $zip_path"
+        rm -rf "$temp_dir"
         return 1
-    fi
+    }
 
-    # Verifica che il file sia stato scaricato
-    if [ ! -f "$temp_file" ]; then
-        print_error "Errore: File non trovato dopo il download."
+    # Verifica integrità e estrazione
+    print_msg "Verifica integrità del file zip..."
+    unzip -t "$zip_path" >/dev/null 2>&1 || {
+        print_error "Il file zip è corrotto o danneggiato"
+        rm -rf "$temp_dir"
         return 1
-    fi
+    }
 
-    print_warn "Installazione del pacchetto .deb in corso..."
+    print_msg "Estrazione del file .zip in corso..."
+    unzip -q "$zip_path" -d "$temp_dir" || {
+        print_error "Errore nell'estrazione del file .zip"
+        rm -rf "$temp_dir"
+        return 1
+    }
+    print_success "Estrazione completata"
 
-    # Installa il pacchetto .deb
-    if sudo dpkg -i "$temp_file"; then
-        print_success "Installazione completata con successo"
-    else
-        print_error "Errore durante l'installazione. Tentativo di risoluzione delle dipendenze..."
-        # Risolvi eventuali dipendenze mancanti
-        sudo apt-get install -f -y
+    # Debug: mostra contenuto estratto
+    print_msg "Debug: Contenuto della directory estratta:"
+    find "$temp_dir" -type f -ls
 
-        # Riprova l'installazione
-        if sudo dpkg -i "$temp_file"; then
-            print_success "Installazione completata dopo la risoluzione delle dipendenze"
+    # Ricerca file .run (ricerca progressiva)
+    print_msg "Ricerca del file .run..."
+    run_file=$(find "$temp_dir" -name "DaVinci_Resolve*.run" -type f | head -n 1)
+    [ -z "$run_file" ] && run_file=$(find "$temp_dir" -name "*.run" -type f | head -n 1)
+    [ -z "$run_file" ] && run_file=$(find "$temp_dir" -type f -executable | grep -i davinci | head -n 1)
+
+    [ -z "$run_file" ] && {
+        print_error "Nessun file .run o eseguibile trovato nella directory estratta"
+        print_msg "Debug: Tutti i file presenti:"
+        find "$temp_dir" -type f -ls
+        return 1
+    }
+
+    print_success "File eseguibile trovato: $(basename "$run_file")"
+    [ ! -x "$run_file" ] && {
+        print_msg "Rendendo il file eseguibile..."
+        chmod +x "$run_file"
+    }
+
+    # Verifica e copia script makeresolvedeb.sh
+    makeresolvedeb_script="$script_dir/makeresolvedeb.sh"
+    [ ! -f "$makeresolvedeb_script" ] && {
+        print_error "Script makeresolvedeb.sh non trovato in $script_dir"
+        return 1
+    }
+
+    print_success "Script makeresolvedeb.sh trovato, copia in directory temporanea..."
+    cp "$makeresolvedeb_script" "$temp_dir/" && chmod +x "$temp_dir/makeresolvedeb.sh" || {
+        print_error "Errore nella copia dello script makeresolvedeb.sh"
+        return 1
+    }
+
+    # Creazione e installazione pacchetto .deb
+    print_msg "Avvio della creazione del pacchetto .deb..."
+    print_warn "Questo processo potrebbe richiedere diversi minuti..."
+
+    original_dir=$(pwd)
+    cd "$temp_dir" || {
+        print_error "Impossibile entrare nella directory temporanea"
+        return 1
+    }
+
+    # Usa solo il nome del file .run senza il percorso completo
+    run_filename=$(basename "$run_file")
+    print_msg "Esecuzione: ./makeresolvedeb.sh $run_filename"
+
+    if ./makeresolvedeb.sh "$run_filename"; then
+        print_success "Pacchetto .deb creato con successo"
+
+        deb_file=$(find . -name "*.deb" -type f | head -n 1)
+        [ -z "$deb_file" ] && {
+            print_error "Pacchetto .deb non generato"
+            cd "$original_dir"
+            return 1
+        }
+
+        print_msg "Installazione del pacchetto .deb: $(basename "$deb_file")"
+
+        if sudo dpkg -i "$deb_file"; then
+            print_success "Installazione completata con successo"
         else
-            print_error "Errore: Installazione fallita. Controlla i log per maggiori dettagli."
-            return 1
+            print_error "Errore durante l'installazione. Tentativo di risoluzione delle dipendenze..."
+            sudo apt-get install -f -y
+            if sudo dpkg -i "$deb_file"; then
+                print_success "Installazione completata dopo la risoluzione delle dipendenze"
+            else
+                print_error "Installazione fallita. Controlla i log per maggiori dettagli."
+                cd "$original_dir"
+                return 1
+            fi
         fi
+    else
+        print_error "Errore nella creazione del pacchetto .deb"
+        cd "$original_dir"
+        return 1
     fi
 
-    # Rimuovi il file temporaneo
-    rm -f "$temp_file"
-
+    cd "$original_dir"
     print_success "DaVinci Resolve installato con successo!"
+    print_msg "File temporanei mantenuti in: $temp_dir"
 }
 
 # Aggiungi le directory al PATH se non già presenti
@@ -383,7 +532,6 @@ main() {
     print_msg "Installazione Applicazioni Esterne"
     setup_repos
     install_pkgs
-    install_whatsapp
     install_spotify
     install_flatpak_apps
     install_deb_packages

@@ -134,63 +134,40 @@ install_mhaudioconverter() {
         read -r
     }
 
-    # Creazione directory per i lanciatori
-    MENU_DIR="$HOME/.local/share/applications/wine/Programs/MediaHuman/Audio Converter"
-    mkdir -p "$MENU_DIR"
+    # Una volta completata l'installazione, copia il file .desktop
+    print_msg "Configurazione del collegamento desktop..."
 
-    # Creazione lanciatore nel menu delle applicazioni
-    print_msg "Creazione del lanciatore nel menu..."
-    cat >"$MENU_DIR/MediaHuman Audio Converter.desktop" <<EOF
-[Desktop Entry]
-Name=MediaHuman Audio Converter
-Exec=env WINEPREFIX="/home/magnetarman/.wine" wine-stable C:\\\\ProgramData\\\\Microsoft\\\\Windows\\\\Start\\ Menu\\\\Programs\\\\MediaHuman\\\\Audio\\ Converter\\\\MediaHuman\\ Audio\\ Converter.lnk
-Type=Application
-StartupNotify=true
-Icon=974A_MHAudioConverter.0
-EOF
+    # Ottieni il nome utente corrente
+    current_user=$(whoami)
 
-    # Creazione lanciatore desktop
-    print_msg "Creazione del lanciatore sul desktop..."
-    DESKTOP_DIR=""
+    # Definisci il percorso di destinazione
+    dest_path="/home/$current_user/.local/share/applications/wine/Programs/MediaHuman/Audio Converter"
 
-    # Usa xdg-user-dir se disponibile
-    if command -v xdg-user-dir >/dev/null 2>&1; then
-        DESKTOP_DIR=$(xdg-user-dir DESKTOP 2>/dev/null)
-    fi
+    # Crea tutte le cartelle necessarie se non esistono
+    mkdir -p "$dest_path"
 
-    # Fallback per le directory comuni
-    if [ -z "$DESKTOP_DIR" ] || [ ! -d "$DESKTOP_DIR" ]; then
-        for desktop_candidate in "$HOME/Desktop" "$HOME/Scrivania"; do
-            if [ -d "$desktop_candidate" ] && [ -w "$desktop_candidate" ]; then
-                DESKTOP_DIR="$desktop_candidate"
-                break
-            fi
-        done
-    fi
+    # Verifica se il file .desktop esiste nella cartella corrente
+    if [ -f "MediaHuman Audio Converter.desktop" ]; then
+        # Copia il file .desktop nel percorso di destinazione
+        cp "MediaHuman Audio Converter.desktop" "$dest_path/"
 
-    # Crea il lanciatore sul desktop se possibile
-    if [ -n "$DESKTOP_DIR" ] && [ -d "$DESKTOP_DIR" ] && [ -w "$DESKTOP_DIR" ]; then
-        cat >"$DESKTOP_DIR/MediaHuman Audio Converter.desktop" <<EOF
-[Desktop Entry]
-Name=MediaHuman Audio Converter
-Exec=env WINEPREFIX="/home/magnetarman/.wine" wine-stable C:\\\\Program\\ Files\\\\MediaHuman\\\\Audio\\ Converter\\\\MHAudioConverter.exe 
-Type=Application
-StartupNotify=true
-Path=/home/magnetarman/.wine/dosdevices/c:/Program Files/MediaHuman/Audio Converter
-Icon=974A_MHAudioConverter.0
-StartupWMClass=mhaudioconverter.exe
-EOF
-        chmod +x "$DESKTOP_DIR/MediaHuman Audio Converter.desktop"
-        print_success "Lanciatore creato sul desktop."
+        if [ $? -eq 0 ]; then
+            print_success "File .desktop copiato con successo in $dest_path/"
+        else
+            print_error "Errore durante la copia del file .desktop"
+            return 1
+        fi
     else
-        print_warn "Directory Desktop non accessibile."
+        print_error "Attenzione: File 'MediaHuman Audio Converter.desktop' non trovato nella cartella corrente"
+        return 1
     fi
+
+    print_success "Installazione e configurazione completate!"
 
     # Pulizia
     rm -f "$DOWNLOAD_PATH"
-
-    print_success "Installazione di MH Audio Converter completata!"
 }
+
 # Funzione principale
 main() {
     print_msg "Inizio dell'installazione di MediaHuman Tools..."
