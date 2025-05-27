@@ -4,20 +4,28 @@
 ![Arch-Linux](https://img.shields.io/badge/Arch_linux-1793d1?style=for-the-badge&logo=Arch-linux&logoColor=white)
 ![Bash](https://img.shields.io/badge/Bash-2b2b2b?style=for-the-badge&logo=gnu-bash&logoColor=white)
 
-Script di configurazione automatica per sistemi basati su Ubuntu (come Linux Mint) ed Arch Linux (come Endeavouros). Questo script installa e configura una selezione di applicazioni e strumenti comunemente utilizzati, ottimizza le impostazioni di sistema e configura i mirror per prestazioni ottimali.
+Script di configurazione automatica per sistemi basati su Ubuntu (come Linux Mint, Kubuntu ecc.) ed Arch Linux (come Endeavouros). Questo script installa e configura una selezione di applicazioni e strumenti comunemente utilizzati, ottimizza le impostazioni di sistema e configura i mirror per prestazioni ottimali.
+
+**ATTENZIONE** - Lo script rileva automaticamente la tua distro linux e si configura di conseguenza.
+
+> [!Note]
+> La versione 2.0 è in **sviluppo attivo**.
+>
+> Lo script per Linux Mint è in fase **Beta** per il testing.
+>
+> Lo script per Arch linux è in fase **Alpha** non pubblico.
 
 ## 📋 Funzionalità
 
 - ✅ Aggiornamento completo del sistema
-- ✅ Installazione di Plexamp come AppImage
 - ✅ Installazione di Ollama per AI locale
 - ✅ Installazione di Chatbox Community edition per interagire con ollama
 - ✅ Installazione e configurazione di Temi e Font addizionali per il terminale
 - ✅ Installazione di una vasta gamma di applicazioni comuni:
-  - Browser (Firefox, Brave, Chrome, Edge)
+  - Browser (Firefox, Brave, Chrome)
   - Strumenti di produttività (VSCode, OnlyOffice, Obsidian)
-  - Media player e editor (VLC, Handbrake, Reaper, MKVToolnix)
-  - Client di messaggistica (Discord, Telegram, WhatsApp)
+  - Media player e editor (VLC, Handbrake, Reaper, MKVToolnix, Plexamp)
+  - Client di messaggistica (Discord, Telegram)
   - Strumenti di sistema e utilità
 - ✅ Pulizia automatica del sistema dopo l'installazione
 
@@ -27,22 +35,16 @@ Script di configurazione automatica per sistemi basati su Ubuntu (come Linux Min
 - Connessione internet
 - Privilegi di amministratore (sudo)
 
-## ⚡ Installazione rapida
+## ⚡ Avvio Script
 
 ```bash
 git clone https://github.com/Magnetarman/linux-conf.git
 cd linux-conf
-chmod +x install.sh
-./install.sh
+chmod +x run.sh
+./run.sh
 ```
 
 ## 📦 Pacchetti installati
-
-### Pacchetti di sistema
-
-- ffmpeg
-- python-pip
-- tk
 
 ### Browser
 
@@ -66,18 +68,18 @@ chmod +x install.sh
 - Handbrake
 - Media Human YouTube-to-MP3
 - Media Human Audio Converter (via Wine)
-- MP3tag
+- EasyTAG
 - MKVToolnix-GUI
 - Freac
 - OBS Studio
 - Upscayl
-- Da Vinci Resolve (free Version)
+- Jdownloader 2
+- Da Vinci Resolve (free Version) Thanks with ❤️ to [Daniel Tufvesson](https://www.danieltufvesson.com/makeresolvedeb)
 
 ### Comunicazione
 
 - Discord
 - Telegram Desktop
-- WhatsApp Desktop
 - Thunderbird
 - Zoom App
 
@@ -85,12 +87,11 @@ chmod +x install.sh
 
 - Steam
 - Heroic Game Launcher
-- Legendary (Epic Games)
 
 ### Strumenti e Utilità
 
 - p7zip (e GUI)
-- WinSCP
+- Filezilla
 - RustDesk
 - LocalSend
 - Enpass
@@ -101,10 +102,9 @@ chmod +x install.sh
 - FreeFileSync
 - Media Info
 - Responsively
-- <del>Google Calendar Widget</del> (Scrica una repo da 40GB, qualcosa non quadra)
 - Baobab (analizzatore di spazio su disco)
 - Fastfetch
-- Fancontrol-GUI (tramite script addizionale)
+- Fancontrol-GUI
 - Piper (configurazione mouse)
 - Simplescan (scansione)
 - My Bash
@@ -121,7 +121,6 @@ Lo script esegue automaticamente diverse operazioni di manutenzione alla fine de
 - Rimozione di pacchetti orfani
 - Pulizia della cache pacchetti
 - Rimozione dei file temporanei
-- Rimozione LibreOffice da Linux Mint
 
 ## ⚠️ Note
 
@@ -143,4 +142,4 @@ Questo progetto è distribuito con licenza MIT. Vedi il file `LICENSE` per maggi
 
 ---
 
-❤️ Se trovi questo progetto utile, considera di lasciare una stella
+❤️ Se trovi questo progetto utile, considera di lasciare una ⭐

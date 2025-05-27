@@ -232,6 +232,7 @@ EOL
     # Crea il file .bash_aliases se non esiste
     if [ ! -f "$ALIASES_FILE" ]; then
         touch "$ALIASES_FILE"
+        print_msg "Creato file .bash_aliases"
     fi
 
     # Verifica se gli alias esistono già per evitare duplicati
@@ -240,7 +241,7 @@ EOL
         cat >>"$ALIASES_FILE" <<'EOL'
 
 # Alias per aggiornamento completo sistema
-alias upd='flatpak update && sudo apt update && sudo apt upgrade && sudo apt dist-upgrade'
+alias upd='flatpak update -y && sudo apt update && sudo apt upgrade -y && sudo apt dist-upgrade -y'
 EOL
     fi
 
@@ -249,17 +250,19 @@ EOL
         cat >>"$ALIASES_FILE" <<'EOL'
 
 # Alias per pulizia pacchetti inutilizzati
-alias clean='flatpak remove --unused && sudo apt autoremove'
+alias clean='flatpak remove --unused -y && sudo apt autoremove -y && sudo apt autoclean'
 EOL
     fi
 
-    # Ricarica .bashrc per rendere gli alias immediatamente disponibili
-    source "$BASHRC_FILE" >/dev/null 2>&1 || true
+    # Assicurati che il file abbia i permessi corretti
+    chmod 644 "$ALIASES_FILE"
+
+    # Ricarica gli alias nel processo corrente
+    if [ -f "$ALIASES_FILE" ]; then
+        source "$ALIASES_FILE" 2>/dev/null || true
+    fi
 
     print_success "Alias configurati con successo."
-    print_msg "Alias disponibili:"
-    print_msg "  - upd: aggiornamento completo di flatpak e apt"
-    print_msg "  - clean: rimozione pacchetti non utilizzati da flatpak e apt"
 }
 
 # Funzione per ritornare allo script principale

@@ -19,47 +19,6 @@ command_exists() {
     command -v "$1" &>/dev/null
 }
 
-# Installazione Driver
-install_driver() {
-    print_msg "Impostazione Driver Video in corso..."
-    print_msg "Aggiunta repository Universe e Multiverse"
-    sudo add-apt-repository universe -y >/dev/null 2>&1
-    sudo add-apt-repository multiverse -y >/dev/null 2>&1
-
-    print_msg "Aggiornamento sistema"
-    sudo apt update && sudo apt upgrade -y
-
-    # Installazione driver GPU
-    install_amd() {
-        add_repository "Mesa Drivers" "sudo add-apt-repository ppa:oibaf/graphics-drivers -y"
-        install_packages "Mesa Vulkan Drivers" mesa-vulkan-drivers libvulkan1 vulkan-utils
-    }
-
-    install_nvidia() {
-        add_repository "NVIDIA Drivers" "sudo add-apt-repository ppa:graphics-drivers/ppa -y"
-        install_packages "NVIDIA Driver" nvidia-driver-535 nvidia-settings vulkan-utils
-    }
-
-    print_warn "Quale scheda grafica hai?"
-    echo "1) AMD"
-    echo "2) NVIDIA"
-    echo "3) Salta"
-    read -p "Inserisci il numero: " choice
-
-    case $choice in
-    1)
-        print_msg "AMD GPU selezionata"
-        install_amd
-        ;;
-    2)
-        print_msg "NVIDIA GPU selezionata"
-        install_nvidia
-        ;;
-    3) print_msg "Salto dell'installazione driver GPU" ;;
-    *) print_error "Scelta non valida. Seleziona 1, 2 o 3" ;;
-    esac
-}
-
 # Installazione e configurazione di Bottles (Inseirlo nella sezione Giochi)
 install_bottles() {
     print_msg "Inizio installazione e configurazione di Bottles..."
@@ -132,7 +91,6 @@ return_to_main() {
 
 # Funzione principale
 main() {
-    install_driver
     install_bottles
     install_heroic
     return_to_main

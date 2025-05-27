@@ -33,10 +33,14 @@ print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
 
 show_title() {
     clear
-    echo -e "${BLUE}┌───────────────────────────────────────────────────────────────────────────┐${RESET}"
-    echo -e "${BLUE}│${RESET}  ${GREEN} Auto Install - Mint Version ${RESET}              ${BLUE}│${RESET}"
-    echo -e "${BLUE}│${RESET}  ${CYAN} v2.0 Beta -- By Magnetarman  ${RESET}             ${BLUE}│${RESET}"
-    echo -e "${BLUE}└───────────────────────────────────────────────────────────────────────────┘${RESET}\n"
+    cat <<"EOF"
+┌───────────────────────────────────────────────────────────────────┐
+│                  Auto Install - Mint Version                      │
+│                  v2.0 Beta -- By MagnetarMan                      │
+└───────────────────────────────────────────────────────────────────┘
+
+EOF
+
     print_success "Benvenuto nel programma di installazione!"
     print_warn "Inizializzazione script in corso... Attendere 3 secondi."
     sleep 3
@@ -50,12 +54,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 setup_system() {
     print_msg "Aggiornamento del sistema..."
-    apt update && apt upgrade -y && print_success "Sistema aggiornato con successo."
+    apt update -qq && apt upgrade -yqq && print_success "Sistema aggiornato con successo."
 
     # Aggiornamento e installazione di wget se non presente
     print_msg "Controllo installazione di wget..."
-    apt install -y wget
-    print_success "WGet installato con successo."
+    if ! command_exists wget; then
+        apt install -yqq wget && print_success "WGet installato con successo."
+    else
+        print_msg "WGet già installato."
+    fi
 }
 
 # Installazione di flatpak e flathub
@@ -63,7 +70,6 @@ install_flatpack() {
     print_msg "Installazione di flatpak e flathub in corso..."
     bash "$SCRIPT_DIR/install_flatpack.sh"
     print_success "Flatpak e Flathub installati con successo."
-    sleep 2
 }
 
 # Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch
@@ -71,7 +77,6 @@ setup_terminal() {
     print_msg "Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch in corso..."
     bash "$SCRIPT_DIR/setup_terminal.sh"
     print_success "MyBash, Starship, FZF, Zoxide, Fastfetch installati con successo."
-    sleep 2
 }
 
 # Installazione Pacchetti APT
@@ -79,7 +84,6 @@ install_apt() {
     print_msg "Installazione pacchetti in corso..."
     bash "$SCRIPT_DIR/install_apt.sh"
     print_success "Pacchetti installati con successo."
-    sleep 2
 }
 
 # Installazione Pacchetti Esterni
@@ -87,7 +91,6 @@ install_external() {
     print_msg "Installazione pacchetti esterni in corso..."
     bash "$SCRIPT_DIR/install_external.sh"
     print_success "Pacchetti esterni installati con successo."
-    sleep 2
 }
 
 # Installazione Supporto Giochi
@@ -95,7 +98,6 @@ setup_games() {
     print_msg "Installazione Driver e Supporto Giochi in corso..."
     bash "$SCRIPT_DIR/setup_games.sh"
     print_success "Giochi installati con successo."
-    sleep 2
 }
 
 # Installazione Prodotti MediaHuman
@@ -103,7 +105,6 @@ setup_mh() {
     print_msg "Installazione Prodotti MediaHuman in corso..."
     bash "$SCRIPT_DIR/setup_mh.sh"
     print_success "Prodotti MediaHuman installati con successo."
-    sleep 2
 }
 
 # Installazione e Configurazione Ollama
@@ -111,29 +112,27 @@ install_ollama() {
     print_msg "Installazione Ollama..."
 
     # Verifica dipendenze
-    apt install -y curl
+    if ! command_exists curl; then
+        apt install -yqq curl
+    fi
 
     print_msg "Scarico lo script di installazione di Ollama..."
-    curl -fsSL https://ollama.com/install.sh -o install_ollama.sh
-
-    print_warn "Eseguo lo script..."
-    bash install_ollama.sh
+    curl -fsSL https://ollama.com/install.sh | bash
 
     MODELS=("llama3" "mistral" "gemma" "codellama" "llava" "phi" "Nessun modello")
 
     if ! command_exists ollama; then
         print_error "Installazione di Ollama fallita."
         return 1
-    else
-        print_success "Ollama installato correttamente."
     fi
+    print_success "Ollama installato correttamente."
 
     print_ask "Scegli un modello da installare:"
     select MODEL in "${MODELS[@]}"; do
         if [[ -n "$MODEL" ]]; then
             if [[ "$MODEL" == "Nessun modello" ]]; then
                 print_warn "ATTENZIONE !!! - Ollama non funziona senza un modello scaricato"
-                MODEL="" # Nessun modello selezionato
+                MODEL=""
             else
                 print_success "Hai selezionato il modello: $MODEL"
             fi
@@ -149,13 +148,11 @@ install_ollama() {
     if systemctl is-active --quiet ollama; then
         print_success "Servizio ollama attivo."
         if [[ -n "$MODEL" ]]; then
-            if ollama list | grep -q "^$MODEL[[:space:]]"; then
-                print_warn "Il modello '$MODEL' è già installato."
-                sleep 2
-                print_warn "Salto il download."
-            else
+            if ! ollama list | grep -q "^$MODEL[[:space:]]"; then
                 print_msg "Scarico il modello '$MODEL'..."
                 ollama pull "$MODEL"
+            else
+                print_warn "Il modello '$MODEL' è già installato. Salto il download."
             fi
         fi
     else
@@ -167,22 +164,39 @@ install_ollama() {
 # Pulizia del Sistema post installazione
 clean_os() {
     print_msg "Pulizia pacchetti inutilizzati..."
-    sleep 2
 
-    print_msg "Rimuovo LibreOffice e tutti i pacchetti correlati con purge..."
-    sudo apt purge -y 'libreoffice*'
+    # Rimuovi LibreOffice e pacchetti correlati solo se presenti
+    if dpkg -l | grep -q 'libreoffice'; then
+        print_msg "Rimuovo LibreOffice e tutti i pacchetti correlati con purge..."
+        apt purge -y 'libreoffice*'
+    fi
 
     print_msg "Rimozione pacchetti non necessari..."
-    apt autoremove -y
+    apt autoremove -y --purge
 
     print_msg "Pulizia cache apt..."
     apt clean
 
     print_msg "Pulizia dei file temporanei..."
     rm -rf /var/tmp/*
-    journalctl --vacuum-time=7d
+
+    # Pulisci i log solo se journalctl è disponibile
+    if command_exists journalctl; then
+        journalctl --vacuum-time=7d
+    fi
 
     print_success "Aggiornamento e pulizia completati!"
+}
+
+show_outro() {
+    cat <<"EOF"
+┌───────────────────────────────────────────────────────────────────┐
+│                  Installazione Completata con Successo!           │
+│                  Controlla i log per eventuali errori.            │
+|                   v2.0 Beta -- By MagnetarMan                     │
+└───────────────────────────────────────────────────────────────────┘   
+EOF
+
 }
 
 # Funzione riavvio OS
@@ -191,14 +205,15 @@ reboot_os() {
     read -rp "Riavviare ? (y/n): " REBOOT_CHOICE
     if [[ "$REBOOT_CHOICE" =~ ^[Yy]$ ]]; then
         print_warn "Riavvio programmato tra 10 secondi. Premi Ctrl+C per annullare."
-        for i in {10..1}; do
+        for ((i = 10; i > 0; i--)); do
             echo -ne "${YELLOW}Riavvio in $i secondi...${RESET}\r"
             sleep 1
         done
-        print_success -e "\nRiavvio in corso..."
+        echo
+        print_success "Riavvio in corso..."
         reboot
     else
-        print_error "Riavvio annullato. E' Consigliabile riavviare il sistema prima dell'utilizzo."
+        print_error "Riavvio annullato. E' consigliabile riavviare il sistema prima dell'utilizzo."
     fi
 }
 
@@ -213,8 +228,8 @@ main() {
     setup_games      # installazione driver e supporto giochi
     setup_mh         # installazione Prodotti MediaHuman
     install_ollama   # installazione di Ollama
-    print_success "✅✅✅ Installazione completata con successo! ✅✅✅"
-    clean_os
+    clean_os         # Pulizia del sistema post installazione
+    show_outro       # Mostra informazioni finali
     print_warn "🔧🔧🔧 Pulizia Completa! Riavviare il Sistema! 🔧🔧🔧"
     reboot_os
 }

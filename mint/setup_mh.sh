@@ -106,18 +106,18 @@ install_mp3converter() {
 install_mhaudioconverter() {
     print_msg "Installazione MH Audio Converter con Wine..."
 
-    # Verifica Wine
-    if ! command_exists wine; then
-        print_msg "Wine non trovato. Installazione in corso..."
-        sudo apt-get update
-        sudo apt-get install -y wine64 || {
-            print_error "Errore durante l'installazione di Wine. Impossibile procedere."
-            exit 1
-        }
+    # Ottieni il nome utente corrente (non root)
+    if [ "$EUID" -eq 0 ]; then
+        current_user="${SUDO_USER:-$(logname 2>/dev/null || echo $USER)}"
+        user_home="/home/$current_user"
+    else
+        current_user="$USER"
+        user_home="$HOME"
     fi
 
     DOWNLOAD_URL="https://www.mediahuman.com/download/MHAudioConverter-x64.exe"
     DOWNLOAD_PATH="/tmp/MHAudioConverter-x64.exe"
+    WINE_PREFIX="$user_home/.wine"
 
     # Download installer
     print_msg "Download di MH Audio Converter..."
@@ -126,48 +126,141 @@ install_mhaudioconverter() {
         exit 1
     }
 
-    # Installazione con Wine
-    print_msg "Esecuzione dell'installer..."
-    wine "$DOWNLOAD_PATH" /SILENT || {
-        print_warn "Installazione manuale richiesta."
-        print_ask "Completa l'installazione nella finestra e premi Invio quando hai terminato..."
-        read -r
-    }
+    # Configurazione Wine prefix come utente normale
+    print_msg "Configurazione ambiente Wine..."
+    if [ "$EUID" -eq 0 ]; then
+        # Se siamo root, esegui come utente normale
+        sudo -u "$current_user" env WINEPREFIX="$WINE_PREFIX" winecfg /v || {
+            print_msg "Configurazione Wine automatica..."
+            sudo -u "$current_user" env WINEPREFIX="$WINE_PREFIX" wineboot --init
+        }
+    else
+        # Se siamo già utente normale
+        env WINEPREFIX="$WINE_PREFIX" winecfg /v || {
+            print_msg "Configurazione Wine automatica..."
+            env WINEPREFIX="$WINE_PREFIX" wineboot --init
+        }
+    fi
 
-    # Una volta completata l'installazione, copia il file .desktop
+    # Installazione con Wine come utente normale
+    print_msg "Esecuzione dell'installer..."
+    if [ "$EUID" -eq 0 ]; then
+        # Esegui come utente normale se siamo root
+        sudo -u "$current_user" env WINEPREFIX="$WINE_PREFIX" DISPLAY="$DISPLAY" wine "$DOWNLOAD_PATH" /SILENT 2>/dev/null || {
+            print_warn "Installazione silenziosa fallita. Tentativo installazione manuale..."
+            sudo -u "$current_user" env WINEPREFIX="$WINE_PREFIX" DISPLAY="$DISPLAY" wine "$DOWNLOAD_PATH" || {
+                print_error "Installazione fallita."
+                rm -f "$DOWNLOAD_PATH"
+                return 1
+            }
+        }
+    else
+        # Se siamo già utente normale
+        env WINEPREFIX="$WINE_PREFIX" wine "$DOWNLOAD_PATH" /SILENT 2>/dev/null || {
+            print_warn "Installazione silenziosa fallita. Tentativo installazione manuale..."
+            env WINEPREFIX="$WINE_PREFIX" wine "$DOWNLOAD_PATH" || {
+                print_error "Installazione fallita."
+                rm -f "$DOWNLOAD_PATH"
+                return 1
+            }
+        }
+    fi
+
+    # Verifica che l'installazione sia completata
+    executable_path="$WINE_PREFIX/drive_c/Program Files/MediaHuman/Audio Converter/MHAudioConverter.exe"
+    if [ ! -f "$executable_path" ]; then
+        print_error "L'eseguibile non è stato trovato. Installazione potrebbe essere fallita."
+        print_msg "Percorso atteso: $executable_path"
+        rm -f "$DOWNLOAD_PATH"
+        return 1
+    fi
+
     print_msg "Configurazione del collegamento desktop..."
 
-    # Ottieni il nome utente corrente
-    current_user=$(whoami)
+    # Definisci i percorsi per il file .desktop
+    desktop_dir="$user_home/.local/share/applications"
+    wine_desktop_dir="$user_home/.local/share/applications/wine/Programs/MediaHuman/Audio Converter"
 
-    # Definisci il percorso di destinazione
-    dest_path="/home/$current_user/.local/share/applications/wine/Programs/MediaHuman/Audio Converter"
+    # Crea le directory necessarie
+    mkdir -p "$desktop_dir"
+    mkdir -p "$wine_desktop_dir"
 
-    # Crea tutte le cartelle necessarie se non esistono
-    mkdir -p "$dest_path"
+    # Crea il file .desktop corretto
+    desktop_file="$desktop_dir/mhaudioconverter.desktop"
 
-    # Verifica se il file .desktop esiste nella cartella corrente
-    if [ -f "MediaHuman Audio Converter.desktop" ]; then
-        # Copia il file .desktop nel percorso di destinazione
-        cp "MediaHuman Audio Converter.desktop" "$dest_path/"
+    cat >"$desktop_file" <<EOF
+[Desktop Entry]
+Name=MediaHuman Audio Converter
+Comment=Convert audio files between different formats
+Exec=env WINEPREFIX="$WINE_PREFIX" wine "$executable_path"
+Type=Application
+StartupNotify=true
+Categories=AudioVideo;Audio;
+Icon=audio-x-generic
+MimeType=audio/mpeg;audio/x-wav;audio/x-flac;audio/ogg;
+StartupWMClass=MHAudioConverter.exe
+EOF
 
-        if [ $? -eq 0 ]; then
-            print_success "File .desktop copiato con successo in $dest_path/"
-        else
-            print_error "Errore durante la copia del file .desktop"
-            return 1
+    # Imposta i permessi corretti
+    chmod +x "$desktop_file"
+
+    # Se siamo root, cambia il proprietario
+    if [ "$EUID" -eq 0 ]; then
+        chown "$current_user:$current_user" "$desktop_file"
+        chown "$current_user:$current_user" "$desktop_dir" 2>/dev/null || true
+    fi
+
+    # Copia anche nella directory wine (se esiste un file .desktop originale)
+    script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    desktop_source="$script_dir/mint/MediaHuman Audio Converter.desktop"
+
+    if [ -f "$desktop_source" ]; then
+        cp "$desktop_source" "$wine_desktop_dir/" 2>/dev/null || true
+        if [ "$EUID" -eq 0 ]; then
+            chown -R "$current_user:$current_user" "$wine_desktop_dir" 2>/dev/null || true
         fi
+        print_msg "File .desktop originale copiato da: $desktop_source"
     else
-        print_error "Attenzione: File 'MediaHuman Audio Converter.desktop' non trovato nella cartella corrente"
-        return 1
+        print_warn "File .desktop originale non trovato in: $desktop_source"
+    fi
+    # Aggiorna il database delle applicazioni
+    if command_exists update-desktop-database; then
+        if [ "$EUID" -eq 0 ]; then
+            sudo -u "$current_user" update-desktop-database "$desktop_dir" 2>/dev/null || true
+        else
+            update-desktop-database "$desktop_dir" 2>/dev/null || true
+        fi
+    fi
+
+    # Crea anche un launcher sul desktop se richiesto
+    desktop_desktop="$user_home/Desktop/MediaHuman Audio Converter.desktop"
+    print_ask "Vuoi creare un collegamento sul desktop? (s/n): "
+    read -r create_desktop_link
+    if [[ "$create_desktop_link" =~ ^[Ss]$ ]]; then
+        cp "$desktop_file" "$desktop_desktop"
+        chmod +x "$desktop_desktop"
+        if [ "$EUID" -eq 0 ]; then
+            chown "$current_user:$current_user" "$desktop_desktop"
+        fi
+        print_success "Collegamento creato sul desktop!"
     fi
 
     print_success "Installazione e configurazione completate!"
 
-    # Pulizia
-    rm -f "$DOWNLOAD_PATH"
-}
+    # Test del launcher
+    print_ask "Vuoi testare il lancio dell'applicazione ora? (s/n): "
+    read -r test_launch
+    if [[ "$test_launch" =~ ^[Ss]$ ]]; then
+        print_msg "Avvio di MH Audio Converter..."
+        if [ "$EUID" -eq 0 ]; then
+            sudo -u "$current_user" env WINEPREFIX="$WINE_PREFIX" DISPLAY="$DISPLAY" wine "$executable_path" &
+        else
+            env WINEPREFIX="$WINE_PREFIX" wine "$executable_path" &
+        fi
+        print_msg "Applicazione avviata in background."
+    fi
 
+}
 # Funzione principale
 main() {
     print_msg "Inizio dell'installazione di MediaHuman Tools..."

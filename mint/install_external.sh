@@ -164,6 +164,7 @@ install_flatpak_apps() {
         "io.github.wiiznokes.fan-control"
         "org.gnome.EasyTAG"
         "dev.edfloreshz.Tasks"
+        "org.jdownloader.JDownloader"
 
     )
 
@@ -194,77 +195,207 @@ install_deb_packages() {
     install_deb "obsidian.deb" "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.16/obsidian_1.4.16_amd64.deb"
 }
 
-install_appimage_packages() {
+install_appimage() {
     print_msg "Installazione pacchetti AppImage..."
 
+    # Determina l'utente reale (non root)
+    REAL_USER=${SUDO_USER:-$USER}
+    REAL_HOME=$(eval echo ~$REAL_USER)
+
+    print_msg "Installazione per utente: $REAL_USER (home: $REAL_HOME)"
+
     # Crea directory per le AppImage se non esiste
-    mkdir -p "$HOME/Applications"
+    mkdir -p "$REAL_HOME/Applications"
+    chown $REAL_USER:$REAL_USER "$REAL_HOME/Applications" 2>/dev/null || true
 
-    # Chatbox
-    install_appimage "chatbox" "https://chatboxai.app/install_chatbox/linux/"
+    # Lista delle AppImage da installare (nome, URL, nome_desktop_opzionale)
+    local apps=(
+        "chatbox https://chatboxai.app/install_chatbox/linux/"
+        "responsively https://github.com/responsively-org/responsively-app-releases/releases/download/v1.16.0/ResponsivelyApp-1.16.0.AppImage ResponsivelyApp"
+    )
 
-    # ResponsivelyApp
-    install_appimage "responsively" "https://github.com/responsively-org/responsively-app-releases/releases/download/v1.16.0/ResponsivelyApp-1.16.0.AppImage"
+    # Installa ogni AppImage
+    for app_info in "${apps[@]}"; do
+        # Separa i parametri
+        read -r app_name download_url desktop_name <<<"$app_info"
+
+        # Verifica che i parametri non siano vuoti
+        if [ -z "$app_name" ] || [ -z "$download_url" ]; then
+            print_msg "Errore: parametri mancanti per $app_info"
+            continue
+        fi
+
+        # Se desktop_name non è specificato, usa app_name
+        desktop_name="${desktop_name:-$app_name}"
+
+        local app_path="$REAL_HOME/Applications/${app_name}.AppImage"
+
+        print_msg "Installazione $app_name da $download_url..."
+
+        # Scarica AppImage con controllo errori
+        if ! wget -q --show-progress -O "$app_path" "$download_url"; then
+            print_msg "Errore nel download di $app_name"
+            rm -f "$app_path" # Rimuovi file parziale se presente
+            continue
+        fi
+
+        # Verifica che il file sia stato scaricato correttamente
+        if [ ! -f "$app_path" ] || [ ! -s "$app_path" ]; then
+            print_msg "Errore: file $app_path non scaricato correttamente"
+            rm -f "$app_path"
+            continue
+        fi
+
+        # Rendi eseguibile e imposta proprietario
+        chmod +x "$app_path"
+        chown $REAL_USER:$REAL_USER "$app_path" 2>/dev/null || true
+
+        # Genera launcher dall'AppImage
+        generate_launcher_from_appimage "$app_path" "$app_name" "$desktop_name" "$REAL_USER" "$REAL_HOME"
+
+        print_success "${app_name^} installato correttamente."
+    done
 }
 
-# Funzione generica per installare AppImage
-install_appimage() {
-    local app_name="$1"
-    local download_url="$2"
-    local desktop_name="${3:-$app_name}"
-    local app_path="$HOME/Applications/${app_name}.AppImage"
+# Funzione per generare launcher dall'AppImage
+generate_launcher_from_appimage() {
+    local app_path="$1"
+    local app_name="$2"
+    local desktop_name="$3"
+    local real_user="$4"
+    local real_home="$5"
 
-    print_msg "Installazione $app_name..."
+    print_msg "Generazione launcher per $app_name..."
 
-    # Scarica AppImage
-    wget -q --show-progress -O "$app_path" "$download_url"
+    # Crea directory temporanea per estrazione
+    local tempdir=$(mktemp -d)
+    local extracted_desktop=""
+    local icon_path=""
+    local final_icon_path=""
 
-    # Rendi eseguibile
-    chmod +x "$app_path"
+    # Estrai contenuto AppImage
+    if (cd "$tempdir" && "$app_path" --appimage-extract >/dev/null 2>&1); then
+        local squashfs_root="$tempdir/squashfs-root"
 
-    # Estrai icona dall'AppImage (se possibile)
-    local icon_path="$HOME/.local/share/icons/${app_name}.png"
+        # Cerca file .desktop esistente nell'AppImage
+        extracted_desktop=$(find "$squashfs_root" -name "*.desktop" -type f | head -n 1)
 
-    # Estrai l'icona usando --appimage-extract
-    tempdir=$(mktemp -d)
-    (cd "$tempdir" && "$app_path" --appimage-extract >/dev/null 2>&1)
+        # Cerca icona nell'AppImage
+        local icon_files=$(find "$squashfs_root" -type f \( -name "*.png" -o -name "*.svg" -o -name "*.xpm" -o -name "*.ico" \) | grep -E "(icon|logo|${app_name})" -i | head -n 1)
 
-    # Cerca un'icona nell'AppImage estratta
-    if [ -d "$tempdir/squashfs-root" ]; then
-        icon_files=$(find "$tempdir/squashfs-root" -name "*.png" -o -name "*.svg" | grep -i -E "icon|logo|${app_name}")
+        # Se non trova icona specifica, cerca .DirIcon o qualsiasi icona
+        if [ -z "$icon_files" ]; then
+            icon_files=$(find "$squashfs_root" -name ".DirIcon" -o -name "*.png" | head -n 1)
+        fi
+
         if [ -n "$icon_files" ]; then
-            first_icon=$(echo "$icon_files" | head -n 1)
-            cp "$first_icon" "$icon_path"
-        else
-            # Se non trova un'icona specifica, usa un'icona predefinita
-            cp "$tempdir/squashfs-root/.DirIcon" "$icon_path" 2>/dev/null || true
+            # Copia icona nella directory dell'utente
+            mkdir -p "$real_home/.local/share/icons"
+            final_icon_path="$real_home/.local/share/icons/${app_name}.png"
+            cp "$icon_files" "$final_icon_path" 2>/dev/null || true
+            chown $real_user:$real_user "$final_icon_path" 2>/dev/null || true
         fi
     fi
 
-    # Se non abbiamo trovato un'icona, usiamo un'icona generica
-    if [ ! -f "$icon_path" ]; then
-        icon_path="application-x-executable"
+    # Se non è stata trovata un'icona, usa una generica
+    if [ -z "$final_icon_path" ] || [ ! -f "$final_icon_path" ]; then
+        final_icon_path="application-x-executable"
     fi
 
-    # Crea file .desktop
-    mkdir -p "$HOME/.local/share/applications"
-    cat >"$HOME/.local/share/applications/${app_name}.desktop" <<EOF
-[Desktop Entry]
-Name=${desktop_name^}
-Exec=${app_path}
-Icon=${icon_path}
+    # Genera informazioni per il .desktop
+    local exec_line="$app_path"
+    local comment_line="$desktop_name AppImage"
+    local categories_line="Utility;Development;"
+
+    # Se abbiamo trovato un .desktop esistente, estrai informazioni
+    if [ -n "$extracted_desktop" ] && [ -f "$extracted_desktop" ]; then
+        print_msg "Trovato file .desktop originale, estraggo informazioni..."
+
+        # Estrai informazioni dal .desktop originale
+        local orig_name=$(grep "^Name=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
+        local orig_comment=$(grep "^Comment=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
+        local orig_categories=$(grep "^Categories=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
+
+        # Usa le informazioni originali se disponibili
+        [ -n "$orig_name" ] && desktop_name="$orig_name"
+        [ -n "$orig_comment" ] && comment_line="$orig_comment"
+        [ -n "$orig_categories" ] && categories_line="$orig_categories"
+    fi
+
+    # Crea directory per .desktop files
+    mkdir -p "$real_home/.local/share/applications"
+    mkdir -p "/usr/share/applications" 2>/dev/null || true
+
+    # Genera file .desktop migliorato
+    local desktop_content="[Desktop Entry]
+Version=1.0
 Type=Application
-Categories=Utility;
+Name=$desktop_name
+Comment=$comment_line
+Icon=$final_icon_path
+Exec=$exec_line
+Categories=$categories_line
 Terminal=false
-EOF
+StartupNotify=true
+X-AppImage-Version=1.0"
 
-    # Aggiorna la cache delle applicazioni
-    update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+    # Crea launcher nella directory utente
+    local user_desktop_file="$real_home/.local/share/applications/${app_name}.desktop"
+    echo "$desktop_content" >"$user_desktop_file"
+    chmod +x "$user_desktop_file"
+    chown $real_user:$real_user "$user_desktop_file" 2>/dev/null || true
 
-    # Pulisci i file temporanei
+    # Crea launcher sul desktop dell'utente
+    local desktop_launcher="$real_home/Desktop/${app_name}.desktop"
+    echo "$desktop_content" >"$desktop_launcher"
+    chmod +x "$desktop_launcher"
+    chown $real_user:$real_user "$desktop_launcher" 2>/dev/null || true
+
+    # Prova a copiare anche in /usr/share/applications (per visibilità globale)
+    if [ -w "/usr/share/applications" ] || [ "$EUID" -eq 0 ]; then
+        echo "$desktop_content" >"/usr/share/applications/${app_name}.desktop" 2>/dev/null || true
+    fi
+
+    # Pulisci directory temporanea
     rm -rf "$tempdir"
 
-    print_success "${app_name^} installato correttamente."
+    # Aggiorna cache del sistema
+    update_desktop_cache "$real_user" "$real_home"
+
+    print_msg "Launcher creato: $user_desktop_file"
+    print_msg "Icona desktop creata: $desktop_launcher"
+}
+
+# Funzione per aggiornare cache desktop
+update_desktop_cache() {
+    local real_user="$1"
+    local real_home="$2"
+
+    print_msg "Aggiornamento cache desktop..."
+
+    # Aggiorna database applicazioni utente
+    if command -v update-desktop-database >/dev/null 2>&1; then
+        sudo -u "$real_user" update-desktop-database "$real_home/.local/share/applications" 2>/dev/null || true
+        update-desktop-database "/usr/share/applications" 2>/dev/null || true
+    fi
+
+    # Aggiorna cache icone
+    if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+        sudo -u "$real_user" gtk-update-icon-cache -f -t "$real_home/.local/share/icons" 2>/dev/null || true
+        gtk-update-icon-cache -f -t "/usr/share/icons/hicolor" 2>/dev/null || true
+    fi
+
+    # Forza aggiornamento menu XDG
+    if command -v xdg-desktop-menu >/dev/null 2>&1; then
+        sudo -u "$real_user" xdg-desktop-menu forceupdate 2>/dev/null || true
+    fi
+
+    # Notifica il sistema di file changes per ambienti desktop moderni
+    if command -v dbus-send >/dev/null 2>&1; then
+        sudo -u "$real_user" dbus-send --session --dest=org.freedesktop.FileManager1 --type=method_call /org/freedesktop/FileManager1 org.freedesktop.FileManager1.ShowFolders array:string:"file://$real_home/.local/share/applications" string:"" 2>/dev/null || true
+    fi
+
+    print_msg "Cache aggiornate. Potrebbe essere necessario logout/login per vedere le modifiche."
 }
 
 # Installazione Reaper
