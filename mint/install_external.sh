@@ -167,6 +167,11 @@ install_deb_packages() {
     # Local By Flywheel
     install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/releases-stable/9.2.4+6788/local-9.2.4-linux.deb"
 
+    if [ $? -ne 0 ]; then
+        print_msg "Tentativo di risoluzione automatica delle dipendenze..."
+        sudo apt --fix-broken install -y
+        sudo dpkg --configure -a
+    fi
 }
 
 install_appimage() {
