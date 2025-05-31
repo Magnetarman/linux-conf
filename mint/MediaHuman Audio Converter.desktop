@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=MediaHuman Audio Converter
+Exec=env WINEPREFIX="/home/magnetarman/.wine" wine-stable C:\\\\Program\\ Files\\\\MediaHuman\\\\Audio\\ Converter\\\\MHAudioConverter.exe 
+Type=Application
+StartupNotify=true
+Path=/home/magnetarman/.wine/dosdevices/c:/Program Files/MediaHuman/Audio Converter
+Icon=974A_MHAudioConverter.0
+StartupWMClass=mhaudioconverter.exe

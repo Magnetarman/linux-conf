@@ -1,58 +1,56 @@
-# 🚀 Arch Linux Setup Automatico
+# 🤖 Auto Install Linux Script 🤖
 
-![Arch Linux](https://img.shields.io/badge/Arch_Linux-1793D1?style=for-the-badge&logo=arch-linux&logoColor=white)
-![Bash](https://img.shields.io/badge/Bash-4EAA25?style=for-the-badge&logo=gnu-bash&logoColor=white)
+![Linx Mint](https://img.shields.io/badge/Linux_Mint-92B662?style=for-the-badge&logo=linux-mint&logoColor=white)
+![Arch-Linux](https://img.shields.io/badge/Arch_linux-1793d1?style=for-the-badge&logo=Arch-linux&logoColor=white)
+![Bash](https://img.shields.io/badge/Bash-2b2b2b?style=for-the-badge&logo=gnu-bash&logoColor=white)
 
-Script di configurazione automatica per sistemi basati su Arch Linux (come EndeavourOS). Questo script installa e configura una selezione di applicazioni e strumenti comunemente utilizzati, ottimizza le impostazioni di sistema e configura i mirror per prestazioni ottimali.
+Script di configurazione automatica per sistemi basati su Ubuntu (come Linux Mint, Kubuntu ecc.) ed Arch Linux (come Endeavouros). Questo script installa e configura una selezione di applicazioni e strumenti comunemente utilizzati, ottimizza le impostazioni di sistema e configura i mirror per prestazioni ottimali.
+
+**ATTENZIONE** - Lo script rileva automaticamente la tua distro linux e si configura di conseguenza.
+
+> [!Note]
+> La versione 2.0 è in **sviluppo attivo**.
+>
+> Lo script per Linux Mint è in fase **RELEASE**.
+>
+> Lo script per Arch linux è in fase **Alpha** non pubblico.
 
 ## 📋 Funzionalità
 
-- ✅ Ottimizzazione dei mirror per Italia, Germania e Francia
 - ✅ Aggiornamento completo del sistema
-- ✅ Installazione e configurazione di yay (gestore pacchetti AUR)
-- ✅ Installazione di Plexamp come AppImage
 - ✅ Installazione di Ollama per AI locale
 - ✅ Installazione di Chatbox Community edition per interagire con ollama
 - ✅ Installazione e configurazione di Temi e Font addizionali per il terminale
 - ✅ Installazione di una vasta gamma di applicazioni comuni:
-  - Browser (Firefox, Brave, Chrome, Edge)
+  - Browser (Firefox, Brave, Chrome)
   - Strumenti di produttività (VSCode, OnlyOffice, Obsidian)
-  - Media player e editor (VLC, Handbrake, Reaper, MKVToolnix)
-  - Client di messaggistica (Discord, Telegram, WhatsApp)
+  - Media player e editor (VLC, Handbrake, Reaper, MKVToolnix, Plexamp)
+  - Client di messaggistica (Discord, Telegram)
   - Strumenti di sistema e utilità
 - ✅ Pulizia automatica del sistema dopo l'installazione
 
 ## 🔧 Prerequisiti
 
-- Sistema operativo basato su Arch Linux (come EndeavourOS, Manjaro, ecc.)
+- Sistema operativo basato su Ubuntu (come Linux Mint, Kubuntu ecc.)
 - Connessione internet
 - Privilegi di amministratore (sudo)
 
-## ⚡ Installazione rapida
+## ⚡ Avvio Script
 
 ```bash
 git clone https://github.com/Magnetarman/linux-conf.git
 cd linux-conf
-chmod +x install.sh
-./install.sh
+chmod +x run.sh
+./run.sh
 ```
 
 ## 📦 Pacchetti installati
-
-### Pacchetti di sistema
-
-- reflector (ottimizzazione mirror)
-- base-devel (strumenti di compilazione)
-- ffmpeg
-- python-pip
-- tk
 
 ### Browser
 
 - Firefox
 - Brave
 - Google Chrome
-- Microsoft Edge
 
 ### Produttività e Ufficio
 
@@ -60,6 +58,7 @@ chmod +x install.sh
 - OnlyOffice
 - Obsidian
 - GitHub Desktop
+- Local by Flywheel
 
 ### Media e Intrattenimento
 
@@ -70,31 +69,31 @@ chmod +x install.sh
 - Handbrake
 - Media Human YouTube-to-MP3
 - Media Human Audio Converter (via Wine)
-- MP3tag
+- EasyTAG
 - MKVToolnix-GUI
 - Freac
 - OBS Studio
 - Upscayl
-- Da Vinci Resolve (free Version)
+- Jdownloader 2
+- Da Vinci Resolve (free Version) Thanks with ❤️ to [Daniel Tufvesson](https://www.danieltufvesson.com/makeresolvedeb)
 
 ### Comunicazione
 
 - Discord
 - Telegram Desktop
-- WhatsApp Desktop
 - Thunderbird
 - Zoom App
+- Whatsie (whtatsapp Client)
 
 ### Gaming
 
 - Steam
 - Heroic Game Launcher
-- Legendary (Epic Games)
 
 ### Strumenti e Utilità
 
 - p7zip (e GUI)
-- WinSCP
+- Filezilla
 - RustDesk
 - LocalSend
 - Enpass
@@ -105,15 +104,14 @@ chmod +x install.sh
 - FreeFileSync
 - Media Info
 - Responsively
-- <del>Google Calendar Widget</del> (Scrica una repo da 40GB, qualcosa non quadra)
 - Baobab (analizzatore di spazio su disco)
 - Fastfetch
-- HDSentinel
-- Fancontrol-GUI (tramite script addizionale)
+- Fancontrol-GUI
 - Piper (configurazione mouse)
 - Simplescan (scansione)
 - My Bash
 - Timeshift
+- Cryptomator
 
 ### AI e ML
 
@@ -124,28 +122,12 @@ chmod +x install.sh
 Lo script esegue automaticamente diverse operazioni di manutenzione alla fine dell'installazione:
 
 - Rimozione di pacchetti orfani
-- Pulizia della cache di pacman
-- Pulizia della cache di yay
+- Pulizia della cache pacchetti
 - Rimozione dei file temporanei
-- Ottimizzazione dei log di sistema
-
-## 🛠️ Personalizzazione
-
-Puoi modificare lo script per aggiungere o rimuovere pacchetti in base alle tue esigenze. Per aggiungere un nuovo pacchetto, trova la sezione appropriata nel file `install.sh` e aggiungi il nome del pacchetto all'elenco.
-
-```bash
-# Esempio: aggiungere un nuovo pacchetto
-yay -S --needed --noconfirm \
-    pacchetto-esistente \
-    nuovo-pacchetto \
-    altro-pacchetto
-```
 
 ## ⚠️ Note
 
-- Lo script utilizza i mirror di Italia, Germania e Francia. Se ti trovi in un'altra regione, modifica il comando `reflector`.
-- Alcuni pacchetti AUR potrebbero richiedere input manuale durante l'installazione, nonostante l'opzione `--noconfirm`.
-- Assicurati di avere abbastanza spazio su disco (>10 GB consigliati) prima di eseguire lo script.
+- Assicurati di avere abbastanza spazio su disco (>20 GB consigliati) prima di eseguire lo script.
 
 ## 🤝 Contribuire
 
@@ -163,4 +145,4 @@ Questo progetto è distribuito con licenza MIT. Vedi il file `LICENSE` per maggi
 
 ---
 
-❤️ Se trovi questo progetto utile, considera di lasciare una stella
+❤️ Se trovi questo progetto utile, considera di lasciare una ⭐
