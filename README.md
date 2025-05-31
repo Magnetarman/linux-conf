@@ -11,7 +11,7 @@ Script di configurazione automatica per sistemi basati su Ubuntu (come Linux Min
 > [!Note]
 > La versione 2.0 è in **sviluppo attivo**.
 >
-> Lo script per Linux Mint è in fase **Beta** per il testing.
+> Lo script per Linux Mint è in fase **RELEASE**.
 >
 > Lo script per Arch linux è in fase **Alpha** non pubblico.
 
