@@ -171,7 +171,7 @@ setup_fastfetch() {
 
     print_msg "Copia file configurazione Fastfetch..."
     mkdir -p "$HOME/.config/fastfetch"
-    curl -sSLo "$HOME/.config/fastfetch/config.jsonc" https://raw.githubusercontent.com/ChrisTitusTech/mybash/main/config.jsonc
+    curl -sSLo "$HOME/.config/fastfetch/config.jsonc" https://raw.githubusercontent.com/Magnetarman/linux-conf/refs/heads/V2.0/mint/fastfetch/config.jsonc
     print_success "File di configurazione Fastfetch copiato."
 
     print_msg "Aggiunta Fastfetch alla shell..."
@@ -265,6 +265,175 @@ EOL
     print_success "Alias configurati con successo."
 }
 
+install_alacritty() {
+    print_msg "Installazione di Alacritty..."
+
+    # Verifica se già installato
+    if command -v alacritty &>/dev/null; then
+        print_warn "Alacritty è già installato."
+        return 0
+    fi
+
+    # Verifica e installa prerequisiti
+    print_msg "Verifica prerequisiti..."
+    local prerequisites=(git curl)
+    for pkg in "${prerequisites[@]}"; do
+        if ! command -v "$pkg" &>/dev/null; then
+            print_msg "Installazione di $pkg..."
+            sudo apt update && sudo apt install -y "$pkg" || {
+                print_error "Errore installazione $pkg!"
+                return 1
+            }
+        fi
+    done
+
+    # Installazione Rust
+    print_msg "Installazione di Rust..."
+    if ! command -v rustc &>/dev/null; then
+        print_msg "Rust non trovato, installazione in corso..."
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y || {
+            print_error "Errore installazione Rust!"
+            return 1
+        }
+        source ~/.cargo/env
+        rustup override set stable && rustup update stable
+        print_success "Rust installato e configurato."
+    else
+        print_warn "Rust è già installato."
+        source ~/.cargo/env 2>/dev/null || true
+    fi
+
+    # Installazione dipendenze
+    print_msg "Installazione delle dipendenze..."
+    sudo apt install -y cmake pkg-config libfreetype6-dev libfontconfig1-dev \
+        libxcb-xfixes0-dev libxkbcommon-dev python3 scdoc || {
+        print_error "Errore installazione dipendenze!"
+        return 1
+    }
+    print_success "Dipendenze installate."
+
+    # Download codice sorgente
+    print_msg "Download del codice sorgente di Alacritty..."
+    cd ~ || return 1
+    [ -d "alacritty" ] && {
+        print_warn "Directory alacritty esistente trovata, rimozione..."
+        rm -rf alacritty
+    }
+
+    git clone https://github.com/alacritty/alacritty.git || {
+        print_error "Errore download codice sorgente!"
+        return 1
+    }
+    cd alacritty || return 1
+    print_success "Codice sorgente scaricato."
+
+    # Compilazione
+    print_msg "Avvio compilazione (questo potrebbe richiedere diversi minuti)..."
+    cargo build --release || {
+        print_error "Errore durante la compilazione!"
+        return 1
+    }
+    print_success "Compilazione completata."
+
+    # Configurazione terminfo
+    print_msg "Configurazione terminfo..."
+    if ! infocmp alacritty >/dev/null 2>&1; then
+        print_msg "Installazione terminfo per Alacritty..."
+        sudo tic -xe alacritty,alacritty-direct extra/alacritty.info
+        print_success "Terminfo configurato."
+    else
+        print_warn "Terminfo già configurato."
+    fi
+
+    # Desktop entry
+    print_msg "Installazione desktop entry..."
+    sudo cp target/release/alacritty /usr/local/bin/
+    sudo cp extra/logo/alacritty-term.svg /usr/share/pixmaps/Alacritty.svg
+    sudo desktop-file-install extra/linux/Alacritty.desktop
+    sudo update-desktop-database
+    print_success "Desktop entry installato."
+
+    # Pagine di manuale
+    print_msg "Installazione pagine di manuale..."
+    sudo mkdir -p /usr/local/share/man/man{1,5}
+
+    if command -v scdoc &>/dev/null; then
+        local man_files=(
+            "extra/man/alacritty.1.scd:/usr/local/share/man/man1/alacritty.1.gz"
+            "extra/man/alacritty-msg.1.scd:/usr/local/share/man/man1/alacritty-msg.1.gz"
+            "extra/man/alacritty.5.scd:/usr/local/share/man/man5/alacritty.5.gz"
+            "extra/man/alacritty-bindings.5.scd:/usr/local/share/man/man5/alacritty-bindings.5.gz"
+        )
+
+        for man_entry in "${man_files[@]}"; do
+            local src_file="${man_entry%:*}"
+            local dest_file="${man_entry#*:}"
+            [ -f "$src_file" ] && scdoc <"$src_file" | gzip -c | sudo tee "$dest_file" >/dev/null
+        done
+        print_success "Pagine di manuale installate."
+    else
+        print_warn "scdoc non disponibile, saltando installazione pagine di manuale."
+    fi
+
+    # Completamenti shell per Bash
+    print_msg "Installazione completamenti shell per Bash..."
+    mkdir -p ~/.bash_completion
+    cp extra/completions/alacritty.bash ~/.bash_completion/alacritty
+
+    if ! grep -q "source ~/.bash_completion/alacritty" ~/.bashrc 2>/dev/null; then
+        echo "source ~/.bash_completion/alacritty" >>~/.bashrc
+        print_success "Completamenti shell configurati."
+    else
+        print_warn "Completamenti shell già configurati in .bashrc."
+    fi
+
+    # Configurazione personalizzata
+    print_msg "Configurazione di Alacritty..."
+    local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    local CONFIG_SOURCE_DIR="$SCRIPT_DIR/mint/alacritty"
+    local CONFIG_TARGET_DIR="$HOME/.config/alacritty"
+
+    if [ -d "$CONFIG_SOURCE_DIR" ]; then
+        print_msg "Trovata cartella di configurazione personalizzata."
+        mkdir -p "$CONFIG_TARGET_DIR"
+
+        # Backup configurazione esistente
+        if [ -d "$CONFIG_TARGET_DIR" ] && [ "$(ls -A "$CONFIG_TARGET_DIR" 2>/dev/null)" ]; then
+            local BACKUP_DIR="$CONFIG_TARGET_DIR.backup.$(date +%Y%m%d_%H%M%S)"
+            print_warn "Configurazione esistente trovata, creazione backup in: $BACKUP_DIR"
+            cp -r "$CONFIG_TARGET_DIR" "$BACKUP_DIR"
+        fi
+
+        # Copia file di configurazione
+        print_msg "Copia dei file di configurazione..."
+        cp -r "$CONFIG_SOURCE_DIR"/* "$CONFIG_TARGET_DIR/" || {
+            print_error "Errore durante la copia dei file di configurazione!"
+            return 1
+        }
+
+        if [ "$(ls -A "$CONFIG_TARGET_DIR" 2>/dev/null)" ]; then
+            print_success "File di configurazione copiati con successo."
+            print_msg "File copiati in: $CONFIG_TARGET_DIR"
+        else
+            print_error "Errore durante la copia dei file di configurazione!"
+        fi
+    else
+        print_warn "Cartella di configurazione personalizzata non trovata: $CONFIG_SOURCE_DIR"
+        mkdir -p "$CONFIG_TARGET_DIR"
+        print_msg "Puoi aggiungere i tuoi file di configurazione in: $CONFIG_TARGET_DIR"
+    fi
+
+    # Verifica finale
+    print_msg "Verifica installazione..."
+    if command -v alacritty &>/dev/null; then
+        local ALACRITTY_VERSION=$(alacritty --version)
+        print_success "Alacritty installato con successo! | Versione: $ALACRITTY_VERSION"
+    else
+        print_error "Installazione fallita. Alacritty non è stato trovato nel PATH!"
+        return 1
+    fi
+}
+
 # Funzione per ritornare allo script principale
 return_to_main() {
     print_msg "Ritornando allo script principale..."
@@ -277,6 +446,7 @@ main() {
     setup_fastfetch
     install_additional_fonts
     install_alias
+    install_alacritty
     sleep 2
     print_warn "Riavvia la shell alla fine dello script per vedere i cambiamenti."
     sleep 5
