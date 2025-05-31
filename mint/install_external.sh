@@ -164,14 +164,36 @@ install_deb_packages() {
     # Obsidian
     install_deb "obsidian.deb" "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.16/obsidian_1.4.16_amd64.deb"
 
+    # Installa le dipendenze per Local by Flywheel
+    print_msg "Installazione dipendenze per Local by Flywheel..."
+
+    # Download e installazione libtinfo5
+    print_msg "Download e installazione libtinfo5..."
+    curl -O http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb
+    sudo dpkg -i libtinfo5_6.4-2_amd64.deb
+
+    # Download e installazione libncurses5
+    print_msg "Download e installazione libncurses5..."
+    curl -O http://launchpadlibrarian.net/648013227/libncurses5_6.4-2_amd64.deb
+    sudo dpkg -i libncurses5_6.4-2_amd64.deb
+
+    # Download e installazione libaio1
+    print_msg "Download e installazione libaio1..."
+    curl -O http://launchpadlibrarian.net/646633572/libaio1_0.3.113-4_amd64.deb
+    sudo dpkg -i libaio1_0.3.113-4_amd64.deb
+
+    # Installazione libnss3-tools tramite apt
+    print_msg "Installazione libnss3-tools..."
+    sudo apt update
+    sudo apt install -y libnss3-tools
+
+    # Pulizia file temporanei
+    rm -f libtinfo5_6.4-2_amd64.deb libncurses5_6.4-2_amd64.deb libaio1_0.3.113-4_amd64.deb
+
+    print_msg "Dipendenze installate. Procedendo con Local by Flywheel..."
+
     # Local By Flywheel
     install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/releases-stable/9.2.4+6788/local-9.2.4-linux.deb"
-
-    if [ $? -ne 0 ]; then
-        print_msg "Tentativo di risoluzione automatica delle dipendenze..."
-        sudo apt --fix-broken install -y
-        sudo dpkg --configure -a
-    fi
 }
 
 install_appimage() {
