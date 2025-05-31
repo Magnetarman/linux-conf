@@ -390,7 +390,7 @@ install_alacritty() {
     # Configurazione personalizzata
     print_msg "Configurazione di Alacritty..."
     local SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    local CONFIG_SOURCE_DIR="$SCRIPT_DIR/mint/alacritty"
+    local CONFIG_SOURCE_DIR="$SCRIPT_DIR/alacritty"
     local CONFIG_TARGET_DIR="$HOME/.config/alacritty"
 
     if [ -d "$CONFIG_SOURCE_DIR" ]; then
