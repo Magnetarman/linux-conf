@@ -113,39 +113,6 @@ install_pkgs() {
     done
 }
 
-# Installa Spotify con metodo alternativo
-install_spotify() {
-    print_warn "Installazione Spotify (metodo alternativo)..."
-
-    # Prima rimuovi eventuali installazioni precedenti
-    sudo apt-get remove -y spotify-client || true
-
-    # Metodo 1: Prova con --allow-unauthenticated
-    print_msg "Tentativo 1: Installazione Spotify con --allow-unauthenticated"
-    if sudo apt-get install --allow-unauthenticated -y spotify-client; then
-        print_success "Spotify installato con successo (metodo 1)"
-        return 0
-    fi
-
-    # Metodo 2: Prova con --allow-insecure
-    print_msg "Tentativo 2: Installazione Spotify con --allow-insecure"
-    if sudo apt-get install --allow-insecure=yes -y spotify-client; then
-        print_success "Spotify installato con successo (metodo 2)"
-        return 0
-    fi
-
-    # Metodo 3: Flatpak come ultima risorsa
-    print_msg "Tentativo 4: Installazione Spotify via Flatpak"
-    setup_flatpak
-    if flatpak install flathub com.spotify.Client -y; then
-        print_success "Spotify installato con successo via Flatpak"
-        return 0
-    fi
-
-    print_error "❌❌❌ Tutti i tentativi di installazione di Spotify sono falliti"
-    return 1
-}
-
 # Installa applicazioni Flatpak
 install_flatpak_apps() {
     setup_flatpak
@@ -165,6 +132,9 @@ install_flatpak_apps() {
         "org.gnome.EasyTAG"
         "dev.edfloreshz.Tasks"
         "org.jdownloader.JDownloader"
+        "com.spotify.Client"
+        "org.cryptomator.Cryptomator"
+        "com.ktechpit.whatsie"
 
     )
 
@@ -193,6 +163,10 @@ install_deb_packages() {
 
     # Obsidian
     install_deb "obsidian.deb" "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.16/obsidian_1.4.16_amd64.deb"
+
+    # Local By Flywheel
+    install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/releases-stable/9.2.4+6788/local-9.2.4-linux.deb"
+
 }
 
 install_appimage() {
@@ -663,7 +637,6 @@ main() {
     print_msg "Installazione Applicazioni Esterne"
     setup_repos
     install_pkgs
-    install_spotify
     install_flatpak_apps
     install_deb_packages
     install_appimage

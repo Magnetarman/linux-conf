@@ -58,6 +58,7 @@ chmod +x run.sh
 - OnlyOffice
 - Obsidian
 - GitHub Desktop
+- Local by Flywheel
 
 ### Media e Intrattenimento
 
@@ -82,6 +83,7 @@ chmod +x run.sh
 - Telegram Desktop
 - Thunderbird
 - Zoom App
+- Whatsie (whtatsapp Client)
 
 ### Gaming
 
@@ -109,6 +111,7 @@ chmod +x run.sh
 - Simplescan (scansione)
 - My Bash
 - Timeshift
+- Cryptomator
 
 ### AI e ML
 
