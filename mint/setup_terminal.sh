@@ -397,13 +397,6 @@ install_alacritty() {
         print_msg "Trovata cartella di configurazione personalizzata."
         mkdir -p "$CONFIG_TARGET_DIR"
 
-        # Backup configurazione esistente
-        if [ -d "$CONFIG_TARGET_DIR" ] && [ "$(ls -A "$CONFIG_TARGET_DIR" 2>/dev/null)" ]; then
-            local BACKUP_DIR="$CONFIG_TARGET_DIR.backup.$(date +%Y%m%d_%H%M%S)"
-            print_warn "Configurazione esistente trovata, creazione backup in: $BACKUP_DIR"
-            cp -r "$CONFIG_TARGET_DIR" "$BACKUP_DIR"
-        fi
-
         # Copia file di configurazione
         print_msg "Copia dei file di configurazione..."
         cp -r "$CONFIG_SOURCE_DIR"/* "$CONFIG_TARGET_DIR/" || {

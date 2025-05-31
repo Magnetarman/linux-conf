@@ -29,7 +29,7 @@ install_packages() {
 }
 
 # Installazione pacchetti
-install_packages "Sistema" ffmpeg timeshift p7zip-full p7zip-rar baobab piper mediainfo-gui python3-pip openjdk-8-jre openjdk-16-jre
+install_packages "Sistema" ffmpeg timeshift p7zip-full p7zip-rar baobab piper mediainfo-gui python3-pip openjdk-8-jre
 install_packages "Browser" firefox
 install_packages "Comunicazione" thunderbird
 install_packages "Multimedia" vlc handbrake mkvtoolnix-gui obs-studio vlc-plugin-access-extra
