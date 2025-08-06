@@ -1,75 +1,29 @@
 #!/bin/bash
 
-# Variabili di colore
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
 
-# Configurazione Messaggi
-print_msg() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-print_success() { echo -e "${GREEN}[✅ SUCCESS]${RESET} $1"; }
-print_warn() { echo -e "${YELLOW}[⚠️ WARNING]${RESET} $1"; }
-print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
-print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
-
-# Controlla ed installa comandi mancanti
-check_cmd() {
-    command -v "$1" >/dev/null 2>&1 || {
-        print_msg "Installazione $1..."
-        sudo apt-get install -y "$1" || print_error "Impossibile installare $1"
-    }
-}
+# Colori e messaggi in una sola funzione
+_c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
+print_msg()     { _c info "$@"; }
+print_success() { _c ok "$@"; }
+print_warn()    { _c warn "$@"; }
+print_error()   { _c err "$@"; }
+print_ask()     { _c ask "$@"; }
+check_cmd() { command -v "$1" &>/dev/null || { print_msg "Installazione $1..."; sudo apt-get install -y "$1" || print_error "Impossibile installare $1"; }; }
 
 # Installa un pacchetto DEB con gestione degli errori migliorata
 install_deb() {
-    local pkg="$1" url="$2"
+    local pkg="$1" url="$2" pkg_path
     print_msg "Scarico e installo pacchetto DEB: $pkg"
-
-    # Controlla se il download è necessario (alcune URL potrebbero essere percorsi locali)
-    if [[ "$url" =~ ^https?:// ]]; then
-        print_warn "Download da $url"
-        if ! wget -O "/tmp/$pkg" "$url"; then
-            print_error "Download fallito per $pkg"
-            return 1
-        fi
-        local pkg_path="/tmp/$pkg"
-    else
-        local pkg_path="$url"
-    fi
-
-    # Controlla che il file scaricato sia un DEB valido
-    if ! file "$pkg_path" | grep -q "Debian binary package"; then
-        print_error "File non valido per $pkg - non è un pacchetto DEB valido"
-        return 1
-    fi
-
-    # Installa il pacchetto
-    if sudo dpkg -i "$pkg_path"; then
-        print_success "$pkg installato con successo"
-    else
-        print_warn "Risoluzione dipendenze per $pkg"
-        sudo apt-get install -f -y
-        if sudo dpkg -i "$pkg_path"; then
-            print_success "$pkg installato con successo dopo risoluzione dipendenze"
-        else
-            print_error "Installazione di $pkg fallita"
-            return 1
-        fi
-    fi
-
-    # Pulisci il file scaricato se necessario
+    [[ "$url" =~ ^https?:// ]] && { print_warn "Download da $url"; wget -O "/tmp/$pkg" "$url" || { print_error "Download fallito per $pkg"; return 1; }; pkg_path="/tmp/$pkg"; } || pkg_path="$url"
+    file "$pkg_path" | grep -q "Debian binary package" || { print_error "File non valido per $pkg - non è un pacchetto DEB valido"; return 1; }
+    sudo dpkg -i "$pkg_path" && print_success "$pkg installato con successo" || { print_warn "Risoluzione dipendenze per $pkg"; sudo apt-get install -f -y; sudo dpkg -i "$pkg_path" && print_success "$pkg installato con successo dopo risoluzione dipendenze" || { print_error "Installazione di $pkg fallita"; return 1; }; }
     [[ "$url" =~ ^https?:// ]] && rm -f "$pkg_path"
     return 0
 }
 
 # Setup dei repository
 setup_repos() {
-    # Crea directory e controlla comandi richiesti
-    mkdir -p ~/.local/bin ~/.gnupg
-    sudo mkdir -p /usr/share/keyrings /etc/apt/keyrings /etc/apt/sources.list.d
+    mkdir -p ~/.local/bin ~/.gnupg; sudo mkdir -p /usr/share/keyrings /etc/apt/keyrings /etc/apt/sources.list.d
     for cmd in curl wget gpg apt-transport-https; do check_cmd "$cmd"; done
 
     # Definizione repository
@@ -81,21 +35,12 @@ setup_repos() {
         ["enpass"]="curl -fsSL https://apt.enpass.io/keys/enpass-linux.key | gpg --dearmor | sudo tee /etc/apt/keyrings/enpass.gpg > /dev/null && echo 'deb [signed-by=/etc/apt/keyrings/enpass.gpg] https://apt.enpass.io/ stable main' | sudo tee /etc/apt/sources.list.d/enpass.list"
         ["github-desktop"]="curl -fsSL https://apt.packages.shiftkey.dev/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/shiftkey.gpg > /dev/null && echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/shiftkey.gpg] https://apt.packages.shiftkey.dev/ubuntu/ any main' | sudo tee /etc/apt/sources.list.d/shiftkey.list"
     )
-
-    # Aggiunta repository
-    for repo in "${!repos[@]}"; do
-        print_msg "Aggiungo repository: $repo"
-        eval "${repos[$repo]}" || print_error "Errore aggiungendo $repo"
-    done
-
-    # Aggiorna apt
-    print_warn "Aggiorno apt..."
-    sudo apt-get update
+    for repo in brave vscode chrome onlyoffice enpass github-desktop; do print_msg "Aggiungo repo: $repo"; eval "${repos[$repo]}" || print_error "Errore aggiungendo $repo"; done
+    print_warn "Aggiorno apt..."; sudo apt-get update
 }
 
 # Installa pacchetti dai repository
 install_pkgs() {
-    # Definisci pacchetti
     declare -A pkgs=(
         ["brave"]="brave-browser"
         ["vscode"]="code"
@@ -104,12 +49,9 @@ install_pkgs() {
         ["enpass"]="enpass"
         ["github-desktop"]="github-desktop"
     )
-
-    # Installa pacchetti
-    for src in "${!pkgs[@]}"; do
-        pkg="${pkgs[$src]}"
-        print_msg "Installo $pkg"
-        sudo apt-get install -y "$pkg" || print_error "Errore installando $pkg"
+    for src in brave vscode chrome onlyoffice enpass github-desktop; do
+        print_msg "Installo ${pkgs[$src]}"
+        sudo apt-get install -y "${pkgs[$src]}" || print_error "Errore installando ${pkgs[$src]}"
     done
 }
 
