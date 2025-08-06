@@ -93,63 +93,26 @@ install_deb_packages() {
 
 install_appimage() {
     print_msg "Installazione pacchetti AppImage..."
-
-    # Determina l'utente reale (non root)
-    REAL_USER=${SUDO_USER:-$USER}
-    REAL_HOME=$(eval echo ~$REAL_USER)
-
+    local REAL_USER=${SUDO_USER:-$USER}
+    local REAL_HOME=$(eval echo ~$REAL_USER)
     print_msg "Installazione per utente: $REAL_USER (home: $REAL_HOME)"
-
-    # Crea directory per le AppImage se non esiste
-    mkdir -p "$REAL_HOME/Applications"
-    chown $REAL_USER:$REAL_USER "$REAL_HOME/Applications" 2>/dev/null || true
-
-    # Lista delle AppImage da installare (nome, URL, nome_desktop_opzionale)
-    local apps=(
-        "chatbox https://chatboxai.app/install_chatbox/linux/"
-        "responsively https://github.com/responsively-org/responsively-app-releases/releases/download/v1.16.0/ResponsivelyApp-1.16.0.AppImage ResponsivelyApp"
+    mkdir -p "$REAL_HOME/Applications" && chown $REAL_USER:$REAL_USER "$REAL_HOME/Applications" 2>/dev/null || true
+    # Definizione AppImage: nome url [desktop_name]
+    local -a apps=(
+        "chatbox|https://chatboxai.app/install_chatbox/linux/|"
+        "responsively|https://github.com/responsively-org/responsively-app-releases/releases/download/v1.16.0/ResponsivelyApp-1.16.0.AppImage|ResponsivelyApp"
     )
-
-    # Installa ogni AppImage
-    for app_info in "${apps[@]}"; do
-        # Separa i parametri
-        read -r app_name download_url desktop_name <<<"$app_info"
-
-        # Verifica che i parametri non siano vuoti
-        if [ -z "$app_name" ] || [ -z "$download_url" ]; then
-            print_msg "Errore: parametri mancanti per $app_info"
-            continue
-        fi
-
-        # Se desktop_name non è specificato, usa app_name
-        desktop_name="${desktop_name:-$app_name}"
-
-        local app_path="$REAL_HOME/Applications/${app_name}.AppImage"
-
-        print_msg "Installazione $app_name da $download_url..."
-
-        # Scarica AppImage con controllo errori
-        if ! wget -q --show-progress -O "$app_path" "$download_url"; then
-            print_msg "Errore nel download di $app_name"
-            rm -f "$app_path" # Rimuovi file parziale se presente
-            continue
-        fi
-
-        # Verifica che il file sia stato scaricato correttamente
-        if [ ! -f "$app_path" ] || [ ! -s "$app_path" ]; then
-            print_msg "Errore: file $app_path non scaricato correttamente"
-            rm -f "$app_path"
-            continue
-        fi
-
-        # Rendi eseguibile e imposta proprietario
-        chmod +x "$app_path"
-        chown $REAL_USER:$REAL_USER "$app_path" 2>/dev/null || true
-
-        # Genera launcher dall'AppImage
-        generate_launcher_from_appimage "$app_path" "$app_name" "$desktop_name" "$REAL_USER" "$REAL_HOME"
-
-        print_success "${app_name^} installato correttamente."
+    for app in "${apps[@]}"; do
+        IFS='|' read -r name url dname <<<"$app"
+        [ -z "$name" ] || [ -z "$url" ] && { print_msg "Errore: parametri mancanti per $app"; continue; }
+        dname="${dname:-$name}"
+        local path="$REAL_HOME/Applications/${name}.AppImage"
+        print_msg "Scarico $name da $url..."
+        wget -q --show-progress -O "$path" "$url" || { print_msg "Errore download $name"; rm -f "$path"; continue; }
+        [ ! -s "$path" ] && { print_msg "Errore: file $path non scaricato correttamente"; rm -f "$path"; continue; }
+        chmod +x "$path" && chown $REAL_USER:$REAL_USER "$path" 2>/dev/null || true
+        generate_launcher_from_appimage "$path" "$name" "$dname" "$REAL_USER" "$REAL_HOME"
+        print_success "${name^} installato correttamente."
     done
 }
 
@@ -160,109 +123,55 @@ generate_launcher_from_appimage() {
     local desktop_name="$3"
     local real_user="$4"
     local real_home="$5"
-
     print_msg "Generazione launcher per $app_name..."
-
-    # Crea directory temporanea per estrazione
-    local tempdir=$(mktemp -d)
-    local extracted_desktop=""
-    local icon_path=""
-    local final_icon_path=""
-
-    # Estrai contenuto AppImage
+    local tempdir=$(mktemp -d) squashfs_root extracted_desktop final_icon_path
     if (cd "$tempdir" && "$app_path" --appimage-extract >/dev/null 2>&1); then
-        local squashfs_root="$tempdir/squashfs-root"
-
-        # Cerca file .desktop esistente nell'AppImage
+        squashfs_root="$tempdir/squashfs-root"
         extracted_desktop=$(find "$squashfs_root" -name "*.desktop" -type f | head -n 1)
-
-        # Cerca icona nell'AppImage
-        local icon_files=$(find "$squashfs_root" -type f \( -name "*.png" -o -name "*.svg" -o -name "*.xpm" -o -name "*.ico" \) | grep -E "(icon|logo|${app_name})" -i | head -n 1)
-
-        # Se non trova icona specifica, cerca .DirIcon o qualsiasi icona
-        if [ -z "$icon_files" ]; then
-            icon_files=$(find "$squashfs_root" -name ".DirIcon" -o -name "*.png" | head -n 1)
-        fi
-
-        if [ -n "$icon_files" ]; then
-            # Copia icona nella directory dell'utente
+        final_icon_path=$(find "$squashfs_root" -type f \( -name "*.png" -o -name "*.svg" -o -name "*.xpm" -o -name "*.ico" \) | grep -E "(icon|logo|${app_name})" -i | head -n 1)
+        [ -z "$final_icon_path" ] && final_icon_path=$(find "$squashfs_root" -name ".DirIcon" -o -name "*.png" | head -n 1)
+        if [ -n "$final_icon_path" ]; then
             mkdir -p "$real_home/.local/share/icons"
+            cp "$final_icon_path" "$real_home/.local/share/icons/${app_name}.png" 2>/dev/null && chown $real_user:$real_user "$real_home/.local/share/icons/${app_name}.png" 2>/dev/null || true
             final_icon_path="$real_home/.local/share/icons/${app_name}.png"
-            cp "$icon_files" "$final_icon_path" 2>/dev/null || true
-            chown $real_user:$real_user "$final_icon_path" 2>/dev/null || true
         fi
     fi
-
-    # Se non è stata trovata un'icona, usa una generica
-    if [ -z "$final_icon_path" ] || [ ! -f "$final_icon_path" ]; then
-        final_icon_path="application-x-executable"
-    fi
-
-    # Genera informazioni per il .desktop
+    [ -z "$final_icon_path" ] || [ ! -f "$final_icon_path" ] && final_icon_path="application-x-executable"
     local exec_line="$app_path"
     local comment_line="$desktop_name AppImage"
     local categories_line="Utility;Development;"
-
-    # Se abbiamo trovato un .desktop esistente, estrai informazioni
     if [ -n "$extracted_desktop" ] && [ -f "$extracted_desktop" ]; then
         print_msg "Trovato file .desktop originale, estraggo informazioni..."
-
-        # Estrai informazioni dal .desktop originale
-        local orig_name=$(grep "^Name=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
-        local orig_comment=$(grep "^Comment=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
-        local orig_categories=$(grep "^Categories=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
-
-        # Usa le informazioni originali se disponibili
+        local orig_name orig_comment orig_categories
+        orig_name=$(grep "^Name=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
+        orig_comment=$(grep "^Comment=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
+        orig_categories=$(grep "^Categories=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
         [ -n "$orig_name" ] && desktop_name="$orig_name"
         [ -n "$orig_comment" ] && comment_line="$orig_comment"
         [ -n "$orig_categories" ] && categories_line="$orig_categories"
     fi
-
-    # Crea directory per .desktop files
-    mkdir -p "$real_home/.local/share/applications"
+    mkdir -p "$real_home/.local/share/applications" "$real_home/Desktop"
     mkdir -p "/usr/share/applications" 2>/dev/null || true
-
-    # Genera file .desktop migliorato
     local desktop_content="[Desktop Entry]
-Version=1.0
-Type=Application
-Name=$desktop_name
-Comment=$comment_line
-Icon=$final_icon_path
-Exec=$exec_line
-Categories=$categories_line
+Name=${desktop_name}
+Comment=${comment_line}
+Exec=\"${exec_line}\"
+Icon=${final_icon_path}
 Terminal=false
-StartupNotify=true
-X-AppImage-Version=1.0"
-
-    # Crea launcher nella directory utente
+Type=Application
+Categories=${categories_line}
+"
     local user_desktop_file="$real_home/.local/share/applications/${app_name}.desktop"
-    echo "$desktop_content" >"$user_desktop_file"
-    chmod +x "$user_desktop_file"
-    chown $real_user:$real_user "$user_desktop_file" 2>/dev/null || true
-
-    # Crea launcher sul desktop dell'utente
+    echo "$desktop_content" >"$user_desktop_file" && chmod +x "$user_desktop_file" && chown $real_user:$real_user "$user_desktop_file" 2>/dev/null || true
     local desktop_launcher="$real_home/Desktop/${app_name}.desktop"
-    echo "$desktop_content" >"$desktop_launcher"
-    chmod +x "$desktop_launcher"
-    chown $real_user:$real_user "$desktop_launcher" 2>/dev/null || true
-
-    # Prova a copiare anche in /usr/share/applications (per visibilità globale)
-    if [ -w "/usr/share/applications" ] || [ "$EUID" -eq 0 ]; then
-        echo "$desktop_content" >"/usr/share/applications/${app_name}.desktop" 2>/dev/null || true
-    fi
-
-    # Pulisci directory temporanea
+    echo "$desktop_content" >"$desktop_launcher" && chmod +x "$desktop_launcher" && chown $real_user:$real_user "$desktop_launcher" 2>/dev/null || true
+    ([ -w "/usr/share/applications" ] || [ "$EUID" -eq 0 ]) && echo "$desktop_content" >"/usr/share/applications/${app_name}.desktop" 2>/dev/null || true
     rm -rf "$tempdir"
-
-    # Aggiorna cache del sistema
     update_desktop_cache "$real_user" "$real_home"
-
     print_msg "Launcher creato: $user_desktop_file"
     print_msg "Icona desktop creata: $desktop_launcher"
 }
 
-# Funzione per aggiornare cache desktop
 update_desktop_cache() {
     local real_user="$1"
     local real_home="$2"
@@ -292,22 +201,6 @@ update_desktop_cache() {
     fi
 
     print_msg "Cache aggiornate. Potrebbe essere necessario logout/login per vedere le modifiche."
-}
-
-# Installazione Reaper
-install_reaper() {
-
-    print_msg "Installazione REAPER"
-    wget -qO reaper.tar.xz "https://www.reaper.fm/files/6.x/reaper668_linux_x86_64.tar.xz"
-    mkdir -p /tmp/reaper && tar -xf reaper.tar.xz -C /tmp/reaper
-    sudo /tmp/reaper/reaper_linux_x86_64/install-reaper.sh --install /opt --integrate-desktop
-    rm -rf /tmp/reaper reaper.tar.xz
-
-    # Gruppi e PATH
-    print_msg "Aggiunta ai gruppi video/audio/input"
-    sudo usermod -aG video,audio,input $(whoami)
-
-    echo 'export PATH="$PATH:$HOME/.local/bin"' >>~/.bashrc
 }
 
 install_davinci_resolve() {
@@ -562,7 +455,6 @@ main() {
     install_flatpak_apps
     install_deb_packages
     install_appimage
-    install_reaper
     install_davinci_resolve
     update_path
     print_warn "Alcuni software potrebbero richiedere il riavvio del sistema per funzionare correttamente."
