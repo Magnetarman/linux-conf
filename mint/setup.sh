@@ -55,43 +55,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 setup_system() {
     print_msg "Aggiornamento del sistema..."
     apt update -qq && apt upgrade -yqq && print_success "Sistema aggiornato con successo."
-
-    # Aggiornamento e installazione di wget se non presente
     print_msg "Controllo installazione di wget..."
-    if ! command_exists wget; then
-        apt install -yqq wget && print_success "WGet installato con successo."
-    else
-        print_msg "WGet già installato."
-    fi
+    command_exists wget && print_msg "WGet già installato." || (apt install -yqq wget && print_success "WGet installato con successo.")
 }
 
-# Installazione di flatpak e flathub
-install_flatpack() {
-    print_msg "Installazione di flatpak e flathub in corso..."
-    bash "$SCRIPT_DIR/install_flatpack.sh"
-    print_success "Flatpak e Flathub installati con successo."
+# Wrapper generico per chiamare script di installazione
+call_script() {  # $1=nome_script $2=descrizione $3=success_msg
+    print_msg "$2"
+    bash "$SCRIPT_DIR/$1"
+    print_success "$3"
 }
 
-# Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch
-setup_terminal() {
-    print_msg "Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch in corso..."
-    bash "$SCRIPT_DIR/setup_terminal.sh"
-    print_success "MyBash, Starship, FZF, Zoxide, Fastfetch installati con successo."
-}
-
-# Installazione Pacchetti APT
-install_apt() {
-    print_msg "Installazione pacchetti in corso..."
-    bash "$SCRIPT_DIR/install_apt.sh"
-    print_success "Pacchetti installati con successo."
-}
-
-# Installazione Pacchetti Esterni
-install_external() {
-    print_msg "Installazione pacchetti esterni in corso..."
-    bash "$SCRIPT_DIR/install_external.sh"
-    print_success "Pacchetti esterni installati con successo."
-}
+install_flatpack()   { call_script install_flatpack.sh   "Installazione di flatpak e flathub in corso..." "Flatpak e Flathub installati con successo."; }
+setup_terminal()     { call_script setup_terminal.sh     "Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch in corso..." "MyBash, Starship, FZF, Zoxide, Fastfetch installati con successo."; }
+install_apt()        { call_script install_apt.sh        "Installazione pacchetti in corso..." "Pacchetti installati con successo."; }
+install_external()   { call_script install_external.sh   "Installazione pacchetti esterni in corso..." "Pacchetti esterni installati con successo."; }
 
 # Installazione Supporto Giochi
 setup_games() {
@@ -230,8 +208,8 @@ main() {
     install_ollama   # installazione di Ollama
     clean_os         # Pulizia del sistema post installazione
     show_outro       # Mostra informazioni finali
-    print_warn "🔧🔧🔧 Pulizia Completa! Riavviare il Sistema! 🔧🔧🔧"
-    reboot_os
+    print_warn "🔧🔧🔧 Pulizia Completa! Riavviare il Sistema! 🔧🔧🔧" # Messaggio di chiusura
+    reboot_os        # Riavvio del sistema
 }
 
 main
