@@ -58,83 +58,36 @@ install_pkgs() {
 # Installa applicazioni Flatpak
 install_flatpak_apps() {
     setup_flatpak
-
-    # Lista applicazioni Flatpak da installare
     local flatpak_apps=(
-        "org.telegram.desktop"
-        "org.localsend.localsend_app"
-        "com.plexamp.Plexamp"
-        "org.upscayl.Upscayl"
-        "com.rustdesk.RustDesk"
-        "org.freac.freac"
-        "org.freefilesync.FreeFileSync"
-        "io.github.jonmagon.kdiskmark"
-        "com.geeks3d.furmark"
-        "io.github.wiiznokes.fan-control"
-        "org.gnome.EasyTAG"
-        "dev.edfloreshz.Tasks"
-        "org.jdownloader.JDownloader"
-        "com.spotify.Client"
-        "org.cryptomator.Cryptomator"
-        "com.ktechpit.whatsie"
-        "io.github.peazip.PeaZip"
+        org.telegram.desktop org.localsend.localsend_app com.plexamp.Plexamp org.upscayl.Upscayl com.rustdesk.RustDesk org.freac.freac org.freefilesync.FreeFileSync io.github.jonmagon.kdiskmark com.geeks3d.furmark io.github.wiiznokes.fan-control org.gnome.EasyTAG dev.edfloreshz.Tasks org.jdownloader.JDownloader com.spotify.Client org.cryptomator.Cryptomator com.ktechpit.whatsie io.github.peazip.PeaZip
     )
-
-    # Installa ogni app
     for app in "${flatpak_apps[@]}"; do
-        print_msg "Installazione $app via Flatpak"
-        if flatpak info "$app" &>/dev/null; then
-            print_warn "$app è già installato"
-        elif flatpak install flathub "$app" -y; then
-            print_success "$app installato con successo"
-        else
-            print_error "Installazione di $app fallita"
-        fi
+        flatpak info "$app" &>/dev/null && print_warn "$app è già installato" || (flatpak install flathub "$app" -y && print_success "$app installato con successo" || print_error "Installazione di $app fallita")
     done
 }
 
 # Installazione file deb
 install_deb_packages() {
     print_msg "Installazione pacchetti DEB..."
+    # Pacchetti DEB principali
+    local debs=(
+        "discord.deb|https://discord.com/api/download?platform=linux&format=deb"
+        "zoom.deb|https://zoom.us/client/latest/zoom_amd64.deb"
+        "obsidian.deb|https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.16/obsidian_1.4.16_amd64.deb"
+    )
+    for d in "${debs[@]}"; do IFS='|' read -r name url <<<"$d"; install_deb "$name" "$url"; done
 
-    # Discord
-    install_deb "discord.deb" "https://discord.com/api/download?platform=linux&format=deb"
-
-    # Zoom
-    install_deb "zoom.deb" "https://zoom.us/client/latest/zoom_amd64.deb"
-
-    # Obsidian
-    install_deb "obsidian.deb" "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.16/obsidian_1.4.16_amd64.deb"
-
-    # Installa le dipendenze per Local by Flywheel
+    # Dipendenze Local by Flywheel
     print_msg "Installazione dipendenze per Local by Flywheel..."
-
-    # Download e installazione libtinfo5
-    print_msg "Download e installazione libtinfo5..."
-    curl -O http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb
-    sudo dpkg -i libtinfo5_6.4-2_amd64.deb
-
-    # Download e installazione libncurses5
-    print_msg "Download e installazione libncurses5..."
-    curl -O http://launchpadlibrarian.net/648013227/libncurses5_6.4-2_amd64.deb
-    sudo dpkg -i libncurses5_6.4-2_amd64.deb
-
-    # Download e installazione libaio1
-    print_msg "Download e installazione libaio1..."
-    curl -O http://launchpadlibrarian.net/646633572/libaio1_0.3.113-4_amd64.deb
-    sudo dpkg -i libaio1_0.3.113-4_amd64.deb
-
-    # Installazione libnss3-tools tramite apt
-    print_msg "Installazione libnss3-tools..."
-    sudo apt update
-    sudo apt install -y libnss3-tools
-
-    # Pulizia file temporanei
+    local deps=(
+        "libtinfo5_6.4-2_amd64.deb|http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb"
+        "libncurses5_6.4-2_amd64.deb|http://launchpadlibrarian.net/648013227/libncurses5_6.4-2_amd64.deb"
+        "libaio1_0.3.113-4_amd64.deb|http://launchpadlibrarian.net/646633572/libaio1_0.3.113-4_amd64.deb"
+    )
+    for dep in "${deps[@]}"; do IFS='|' read -r fname furl <<<"$dep"; print_msg "Download e installazione $fname..."; curl -O "$furl" && sudo dpkg -i "$fname"; done
+    print_msg "Installazione libnss3-tools..."; sudo apt update; sudo apt install -y libnss3-tools
     rm -f libtinfo5_6.4-2_amd64.deb libncurses5_6.4-2_amd64.deb libaio1_0.3.113-4_amd64.deb
-
     print_msg "Dipendenze installate. Procedendo con Local by Flywheel..."
-
-    # Local By Flywheel
     install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/releases-stable/9.2.4+6788/local-9.2.4-linux.deb"
 }
 
