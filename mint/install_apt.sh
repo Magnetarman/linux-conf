@@ -29,11 +29,10 @@ install_packages() {
 }
 
 # Installazione pacchetti
-install_packages "Sistema" ffmpeg timeshift p7zip-full p7zip-rar baobab piper mediainfo-gui python3-pip openjdk-8-jre
+install_packages "Sistema" ffmpeg timeshift baobab piper mediainfo-gui python3-pip openjdk-8-jre
 install_packages "Browser" firefox
 install_packages "Comunicazione" thunderbird
 install_packages "Multimedia" vlc handbrake mkvtoolnix-gui obs-studio vlc-plugin-access-extra
-install_packages "Download" qbittorrent
 install_packages "Produttività" default-jdk simple-scan filezilla gimp
 install_packages "Compatibilità" wine winbind winetricks xorriso libssl-dev ocl-icd-opencl-dev fakeroot xz-utils unzip
 install_packages "Giochi" steam lutris goverlay

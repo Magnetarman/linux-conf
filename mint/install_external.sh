@@ -135,7 +135,7 @@ install_flatpak_apps() {
         "com.spotify.Client"
         "org.cryptomator.Cryptomator"
         "com.ktechpit.whatsie"
-
+        "io.github.peazip.PeaZip"
     )
 
     # Installa ogni app
