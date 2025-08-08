@@ -65,9 +65,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 setup_system() {
     print_msg "Aggiornamento del sistema..."
-    apt update -qq && apt upgrade -yqq && print_success "Sistema aggiornato con successo."
+    if DEBIAN_FRONTEND=noninteractive apt update -qq && DEBIAN_FRONTEND=noninteractive apt upgrade -yqq; then
+        print_success "Sistema aggiornato con successo."
+    else
+        print_error "Errore durante l'aggiornamento del sistema. Controlla la connessione o i repository."
+    fi
     print_msg "Controllo installazione di wget..."
-    command_exists wget && print_msg "WGet già installato." || (apt install -yqq wget && print_success "WGet installato con successo.")
+    if command_exists wget; then
+        print_msg "WGet già installato."
+    else
+        if DEBIAN_FRONTEND=noninteractive apt install -yqq wget; then
+            print_success "WGet installato con successo."
+        else
+            print_error "Errore nell'installazione di wget."
+        fi
+    fi
 }
 
 # Wrapper generico per chiamare script di installazione
@@ -81,20 +93,8 @@ install_flatpack()   { call_script install_flatpack.sh   "Installazione di flatp
 setup_terminal()     { call_script setup_terminal.sh     "Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch in corso..." "MyBash, Starship, FZF, Zoxide, Fastfetch installati con successo."; }
 install_apt()        { call_script install_apt.sh        "Installazione pacchetti in corso..." "Pacchetti installati con successo."; }
 install_external()   { call_script install_external.sh   "Installazione pacchetti esterni in corso..." "Pacchetti esterni installati con successo."; }
-
-# Installazione Supporto Giochi
-setup_games() {
-    print_msg "Installazione Driver e Supporto Giochi in corso..."
-    bash "$SCRIPT_DIR/setup_games.sh"
-    print_success "Giochi installati con successo."
-}
-
-# Installazione Prodotti MediaHuman
-setup_mh() {
-    print_msg "Installazione Prodotti MediaHuman in corso..."
-    bash "$SCRIPT_DIR/setup_mh.sh"
-    print_success "Prodotti MediaHuman installati con successo."
-}
+setup_games()    { call_script setup_games.sh    "Installazione Driver e Supporto Giochi in corso..." "Giochi installati con successo."; }
+setup_mh()       { call_script setup_mh.sh       "Installazione Prodotti MediaHuman in corso..." "Prodotti MediaHuman installati con successo."; }
 
 # Installazione e Configurazione Ollama
 install_ollama() {
