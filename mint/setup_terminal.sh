@@ -90,49 +90,49 @@ setup_fastfetch() {
     sudo apt-get install -y fish cmake ninja-build pkg-config libpci-dev libvulkan-dev libwayland-dev libxrandr-dev libxcb-randr0-dev libx11-dev
     git clone https://github.com/fastfetch-cli/fastfetch.git /tmp/fastfetch
     cmake -S /tmp/fastfetch -B /tmp/fastfetch/build -GNinja && ninja -C /tmp/fastfetch/build && sudo ninja -C /tmp/fastfetch/build install
-}
 
-    print_msg "Configurazione di Fastfetch..."
-    if ! command_exists fastfetch; then
-        print_msg "Fastfetch non trovato nei repository standard. Installazione alternativa..."
 
-        # Aggiornamento dipendenze Fastfetch
-        print_warn "Aggiornamento dipendenze Fastfetch"
+print_msg "Configurazione di Fastfetch..."
+if ! command_exists fastfetch; then
+    print_msg "Fastfetch non trovato nei repository standard. Installazione alternativa..."
+
+    # Aggiornamento dipendenze Fastfetch
+    print_warn "Aggiornamento dipendenze Fastfetch"
     sudo apt-get update && sudo apt-get install -y \
-            git cmake build-essential pkg-config \
-            libpci-dev libgl1-mesa-dev
+        git cmake build-essential pkg-config \
+        libpci-dev libgl1-mesa-dev
 
-        # Clonazione del repository
-        print_msg "Clonazione repository Fastfetch..."
-        git clone https://github.com/fastfetch-cli/fastfetch.git
-        cd fastfetch
+    # Clonazione del repository
+    print_msg "Clonazione repository Fastfetch..."
+    git clone https://github.com/fastfetch-cli/fastfetch.git
+    cd fastfetch
 
-        # Creazione directory di build
-        print_msg "Compilazione..."
-        mkdir -p build && cd build
-        cmake ..
-        make -j$(nproc)
+    # Creazione directory di build
+    print_msg "Compilazione..."
+    mkdir -p build && cd build
+    cmake ..
+    make -j$(nproc)
 
-        # Installazione
-        print_msg "Installazione..."
-        sudo make install
-        cd ../..
-    else
-        print_warn "Fastfetch è già installato."
-    fi
+    # Installazione
+    print_msg "Installazione..."
+    sudo make install
+    cd ../..
+else
+    print_warn "Fastfetch è già installato."
+fi
 
-    print_msg "Copia file configurazione Fastfetch..."
-    mkdir -p "$HOME/.config/fastfetch"
-    curl -sSLo "$HOME/.config/fastfetch/config.jsonc" https://raw.githubusercontent.com/ChrisTitusTech/mybash/main/config.jsonc
-    print_success "File di configurazione Fastfetch copiato."
+print_msg "Copia file configurazione Fastfetch..."
+mkdir -p "$HOME/.config/fastfetch"
+curl -sSLo "$HOME/.config/fastfetch/config.jsonc" https://raw.githubusercontent.com/ChrisTitusTech/mybash/main/config.jsonc
+print_success "File di configurazione Fastfetch copiato."
 
-    print_msg "Aggiunta Fastfetch alla shell..."
-    if grep -q "fastfetch" "$HOME/.bashrc"; then
-        print_warn "Fastfetch è già configurato in .bashrc"
-    else
-        echo -e "\n# Avvia Fastfetch all'avvio della shell\nfastfetch" >>"$HOME/.bashrc"
-        print_success "Fastfetch aggiunto a .bashrc"
-    fi
+print_msg "Aggiunta Fastfetch alla shell..."
+if grep -q "fastfetch" "$HOME/.bashrc"; then
+    print_warn "Fastfetch è già configurato in .bashrc"
+else
+    echo -e "\n# Avvia Fastfetch all'avvio della shell\nfastfetch" >>"$HOME/.bashrc"
+    print_success "Fastfetch aggiunto a .bashrc"
+fi
 }
 
 # Installazione Font Addizionali (Terminus)
@@ -229,10 +229,11 @@ main() {
     setup_fastfetch
     install_additional_fonts
     install_alias
-    sleep 2
-    print_warn "Riavvia la shell alla fine dello script per vedere i cambiamenti."
-    sleep 5
-    return_to_main
+
 }
 # Avvio dello script
 main
+sleep 2
+print_warn "Riavvia la shell alla fine dello script per vedere i cambiamenti."
+sleep 5
+return_to_main
