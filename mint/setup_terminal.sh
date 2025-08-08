@@ -12,13 +12,13 @@ command_exists() { command -v "$1" &>/dev/null; }
 install_if_missing() {
     local pkgs=()
     for pkg; do command_exists "$pkg" || pkgs+=("$pkg"); done
-    [ ${#pkgs[@]} -gt 0 ] && sudo apt install -y "${pkgs[@]}"
+    [ ${#pkgs[@]} -gt 0 ] && sudo apt-get install -y "${pkgs[@]}"
 }
 
 # Installazione pip3 e aggiunta PATH
 install_pip3() {
     print_msg "nstallazione di pip3"
-    sudo apt install -y python3-pip
+    sudo apt-get install -y python3-pip
 
     print_msg "Aggiunta di ~/.local/bin al PATH se non già presente"
     if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
@@ -61,14 +61,14 @@ install_mybash() {
 
     # FZF
     if ! command_exists fzf; then
-        apt install -y fzf || { print_warn "FZF non trovato, installazione da git..."; sudo -u "${SUDO_USER:-$USER}" git clone --depth 1 https://github.com/junegunn/fzf.git "$USER_HOME/.fzf"; sudo -u "${SUDO_USER:-$USER}" "$USER_HOME/.fzf/install" --all; }
+        apt-get install -y fzf || { print_warn "FZF non trovato, installazione da git..."; sudo -u "${SUDO_USER:-$USER}" git clone --depth 1 https://github.com/junegunn/fzf.git "$USER_HOME/.fzf"; sudo -u "${SUDO_USER:-$USER}" "$USER_HOME/.fzf/install" --all; }
     else
         print_warn "FZF già installato."
     fi
 
     # Zoxide
     if ! command_exists zoxide; then
-        sudo apt install -y zoxide || curl -sSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh || { print_error "Errore Zoxide!"; exit 1; }
+        sudo apt-get install -y zoxide || curl -sSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh || { print_error "Errore Zoxide!"; exit 1; }
     else
         print_warn "Zoxide già installato."
     fi
@@ -86,8 +86,8 @@ install_mybash() {
 setup_fastfetch() {
     print_msg "Compilazione Fastfetch"
     sudo add-apt-repository -y ppa:fish-shell/release-3
-    sudo apt update
-    sudo apt install -y fish cmake ninja-build pkg-config libpci-dev libvulkan-dev libwayland-dev libxrandr-dev libxcb-randr0-dev libx11-dev
+    sudo apt-get update
+    sudo apt-get install -y fish cmake ninja-build pkg-config libpci-dev libvulkan-dev libwayland-dev libxrandr-dev libxcb-randr0-dev libx11-dev
     git clone https://github.com/fastfetch-cli/fastfetch.git /tmp/fastfetch
     cmake -S /tmp/fastfetch -B /tmp/fastfetch/build -GNinja && ninja -C /tmp/fastfetch/build && sudo ninja -C /tmp/fastfetch/build install
 }
@@ -98,7 +98,7 @@ setup_fastfetch() {
 
         # Aggiornamento dipendenze Fastfetch
         print_warn "Aggiornamento dipendenze Fastfetch"
-        sudo apt update && sudo apt install -y \
+    sudo apt-get update && sudo apt-get install -y \
             git cmake build-essential pkg-config \
             libpci-dev libgl1-mesa-dev
 
@@ -145,7 +145,7 @@ install_additional_fonts() {
         print_warn "Font Terminus già installato."
     else
         print_msg "Installazione del font Terminus in corso..."
-        apt install -y $FONT_PACKAGE && print_success "Font Terminus installato con successo." || print_warn "Installazione del font fallita, continuo comunque..."
+    apt-get install -y $FONT_PACKAGE && print_success "Font Terminus installato con successo." || print_warn "Installazione del font fallita, continuo comunque..."
     fi
 
     print_msg "Configurazione del font Terminus per la TTY..."
@@ -193,7 +193,7 @@ EOL
         cat >>"$ALIASES_FILE" <<'EOL'
 
 # Alias per aggiornamento completo sistema
-alias upd='flatpak update -y && sudo apt update && sudo apt upgrade -y && sudo apt dist-upgrade -y'
+alias upd='flatpak update -y && sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y'
 EOL
     fi
 
@@ -202,7 +202,7 @@ EOL
         cat >>"$ALIASES_FILE" <<'EOL'
 
 # Alias per pulizia pacchetti inutilizzati
-alias clean='flatpak remove --unused -y && sudo apt autoremove -y && sudo apt autoclean'
+alias clean='flatpak remove --unused -y && sudo apt-get autoremove -y && sudo apt-get autoclean'
 EOL
     fi
 

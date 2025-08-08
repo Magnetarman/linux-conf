@@ -65,7 +65,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 setup_system() {
     print_msg "Aggiornamento del sistema..."
-    if DEBIAN_FRONTEND=noninteractive apt update -qq && DEBIAN_FRONTEND=noninteractive apt upgrade -yqq; then
+    if DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get upgrade -yqq; then
         print_success "Sistema aggiornato con successo."
     else
         print_error "Errore durante l'aggiornamento del sistema. Controlla la connessione o i repository."
@@ -74,7 +74,7 @@ setup_system() {
     if command_exists wget; then
         print_msg "WGet già installato."
     else
-        if DEBIAN_FRONTEND=noninteractive apt install -yqq wget; then
+    if DEBIAN_FRONTEND=noninteractive apt-get install -yqq wget; then
             print_success "WGet installato con successo."
         else
             print_error "Errore nell'installazione di wget."
@@ -102,7 +102,7 @@ install_ollama() {
 
     # Verifica dipendenze
     if ! command_exists curl; then
-        apt install -yqq curl
+        apt-get install -yqq curl
     fi
 
     print_msg "Scarico lo script di installazione di Ollama..."
@@ -157,14 +157,14 @@ clean_os() {
     # Rimuovi LibreOffice e pacchetti correlati solo se presenti
     if dpkg -l | grep -q 'libreoffice'; then
         print_msg "Rimuovo LibreOffice e tutti i pacchetti correlati con purge..."
-        apt purge -y 'libreoffice*'
+        apt-get purge -y 'libreoffice*'
     fi
 
     print_msg "Rimozione pacchetti non necessari..."
-    apt autoremove -y --purge
+    apt-get autoremove -y --purge
 
     print_msg "Pulizia cache apt..."
-    apt clean
+    apt-get clean
 
     print_msg "Pulizia dei file temporanei..."
     rm -rf /var/tmp/*
@@ -181,7 +181,7 @@ add_keys() {
     print_msg "Ricerca e aggiunta automatica delle chiavi GPG mancanti per i repository APT..."
     local missing_keys keyid url
     # Esegui apt update e cattura le key mancanti
-    missing_keys=$(apt update 2>&1 | grep 'NO_PUBKEY' | awk '{print $NF}' | sort -u)
+    missing_keys=$(apt-get update 2>&1 | grep 'NO_PUBKEY' | awk '{print $NF}' | sort -u)
     if [[ -z "$missing_keys" ]]; then
         print_success "Nessuna chiave mancante rilevata."
         return 0
@@ -198,7 +198,7 @@ add_keys() {
         fi
     done
     print_msg "Aggiornamento delle sorgenti apt..."
-    apt update
+    apt-get update
     print_success "Aggiornamento completato."
 }
 

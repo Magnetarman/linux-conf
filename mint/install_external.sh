@@ -83,7 +83,7 @@ install_deb_packages() {
         "libaio1_0.3.113-4_amd64.deb|http://launchpadlibrarian.net/646633572/libaio1_0.3.113-4_amd64.deb"
     )
     for dep in "${deps[@]}"; do IFS='|' read -r fname furl <<<"$dep"; print_msg "Download e installazione $fname..."; curl -O "$furl" && sudo dpkg -i "$fname"; done
-    print_msg "Installazione libnss3-tools..."; sudo apt update; sudo apt install -y libnss3-tools
+    print_msg "Installazione libnss3-tools..."; sudo apt-get update; sudo apt-get install -y libnss3-tools
     rm -f libtinfo5_6.4-2_amd64.deb libncurses5_6.4-2_amd64.deb libaio1_0.3.113-4_amd64.deb
     print_msg "Dipendenze installate. Procedendo con Local by Flywheel..."
     install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/stable/latest/deb"

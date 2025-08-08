@@ -23,7 +23,7 @@ PKGS["Librerie giochi 32-bit"]="libgl1:i386 libgnutls30:i386 libgtk2.0-0:i386 li
 install_packages() {
     for cat in "${!PKGS[@]}"; do
         print_msg "Installazione pacchetti: $cat"
-        sudo apt update && sudo apt install -y ${PKGS[$cat]} && print_success "$cat installati con successo" || print_error "Errore durante l'installazione di $cat"
+        sudo apt-get update && sudo apt-get install -y ${PKGS[$cat]} && print_success "$cat installati con successo" || print_error "Errore durante l'installazione di $cat"
     done
 }
 

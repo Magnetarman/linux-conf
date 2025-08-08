@@ -11,7 +11,7 @@ command_exists() { command -v "$1" &>/dev/null; }
 install_flatpak() {
     if ! command_exists flatpak; then
         print_msg "Installazione di Flatpak..."
-        sudo apt update -y && sudo apt install -y flatpak
+    sudo apt-get update -y && sudo apt-get install -y flatpak
     else
         print_warn "Flatpak è già installato."
     fi
@@ -27,7 +27,7 @@ setup_snap() {
 
     if ! command_exists snap; then
         print_msg "Snap non è installato. Installazione in corso..."
-        sudo apt-get update -y && sudo apt-get install -y snapd || {
+    sudo apt-get update -y && sudo apt-get install -y snapd || {
             print_warn "Installazione di Snap saltata."
             return 1
         }
