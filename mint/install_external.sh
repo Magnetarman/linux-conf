@@ -49,7 +49,17 @@ install_pkgs() {
     )
     for src in brave vscode chrome onlyoffice enpass github-desktop; do
         print_msg "Installo ${pkgs[$src]}"
-        sudo apt-get install -y "${pkgs[$src]}" || print_error "Errore installando ${pkgs[$src]}"
+        if [[ "${pkgs[$src]}" == "onlyoffice-desktopeditors" ]]; then
+            # Accetta EULA ttf-mscorefonts-installer se richiesto
+            if apt-cache depends onlyoffice-desktopeditors | grep -q ttf-mscorefonts-installer; then
+                echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+            fi
+            if ! sudo apt-get install -y onlyoffice-desktopeditors; then
+                print_warn "Installazione di onlyoffice-desktopeditors saltata per problemi con EULA o dipendenze."
+            fi
+        else
+            sudo apt-get install -y "${pkgs[$src]}" || print_error "Errore installando ${pkgs[$src]}"
+        fi
     done
 }
 
