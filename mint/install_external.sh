@@ -219,7 +219,7 @@ install_davinci_resolve() {
             print_error "Impossibile determinare l'utente originale. Esci dalla modalità sudo manualmente."
             return 1
         }
-        sudo -u "$SUDO_USER" bash -c "$(declare -f install_davinci_resolve print_msg print_warn print_error print_success print_ask); cd '$script_dir'; install_davinci_resolve"
+        sudo -u "$SUDO_USER" bash -c "$(declare -f _c print_msg print_warn print_error print_success print_ask install_davinci_resolve); cd '$script_dir'; install_davinci_resolve"
         return $?
     fi
 
