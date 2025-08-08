@@ -1,24 +1,12 @@
 #!/bin/bash
-# Variabili di colore
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
-
-# Configurazione Messaggi
+# Colori e messaggi in una sola funzione
 _c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
 print_msg()     { _c info "$@"; }
 print_success() { _c ok "$@"; }
 print_warn()    { _c warn "$@"; }
 print_error()   { _c err "$@"; }
 print_ask()     { _c ask "$@"; }
-
-# Funzione per verificare se un comando esiste
-command_exists() {
-    command -v "$1" &>/dev/null
-}
+command_exists() { command -v "$1" &>/dev/null; }
 
 # Installazione e configurazione di Bottles (Inseirlo nella sezione Giochi)
 install_bottles() {

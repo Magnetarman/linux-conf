@@ -16,27 +16,21 @@ while true; do
     kill -0 "$$" || exit
 done 2>/dev/null &
 
-# Variabili di colore
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
-
-# Configurazione Messaggi
-print_msg() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-print_success() { echo -e "${GREEN}[✅ SUCCESS]${RESET} $1"; }
-print_warn() { echo -e "${YELLOW}[⚠️ WARNING]${RESET} $1"; }
-print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
-print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
+# Colori e messaggi in una sola funzione
+_c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
+print_msg()     { _c info "$@"; }
+print_success() { _c ok "$@"; }
+print_warn()    { _c warn "$@"; }
+print_error()   { _c err "$@"; }
+print_ask()     { _c ask "$@"; }
+command_exists() { command -v "$1" &>/dev/null; }
 
 show_title() {
     clear
     cat <<"EOF"
 ┌───────────────────────────────────────────────────────────────────┐
 │                  Auto Install - Mint Version                      │
-│                  v2.1.0 Beta -- By MagnetarMan                    │
+│                  v2.1.1 -- By MagnetarMan                         │
 └───────────────────────────────────────────────────────────────────┘
 
 EOF
@@ -171,7 +165,7 @@ show_outro() {
 ┌───────────────────────────────────────────────────────────────────┐
 │                  Installazione Completata con Successo!           │
 │                  Controlla i log per eventuali errori.            │
-|                   v2.1.0 Beta -- By MagnetarMan                   │
+|                   v2.1.1 -- By MagnetarMan                        │
 └───────────────────────────────────────────────────────────────────┘   
 EOF
 

@@ -1,6 +1,4 @@
 #!/bin/bash
-
-
 # Colori e messaggi in una sola funzione
 _c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
 print_msg()     { _c info "$@"; }
@@ -9,7 +7,6 @@ print_warn()    { _c warn "$@"; }
 print_error()   { _c err "$@"; }
 print_ask()     { _c ask "$@"; }
 command_exists() { command -v "$1" &>/dev/null; }
-
 # Definizione pacchetti per categoria
 declare -A PKGS
 PKGS["Sistema"]="ffmpeg timeshift baobab piper mediainfo-gui python3-pip openjdk-8-jre"
