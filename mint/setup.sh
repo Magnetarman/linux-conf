@@ -195,6 +195,32 @@ reboot_os() {
     fi
 }
 
+
+add_keys() {
+    print_msg "Ricerca e aggiunta automatica delle chiavi GPG mancanti per i repository APT..."
+    local missing_keys keyid url
+    # Esegui apt update e cattura le key mancanti
+    missing_keys=$(apt update 2>&1 | grep 'NO_PUBKEY' | awk '{print $NF}' | sort -u)
+    if [[ -z "$missing_keys" ]]; then
+        print_success "Nessuna chiave mancante rilevata."
+        return 0
+    fi
+    for keyid in $missing_keys; do
+        print_warn "Aggiungo chiave mancante: $keyid"
+        url="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${keyid}"
+        if curl -fsSL "$url" | gpg --dearmor | sudo tee "/etc/apt/keyrings/${keyid}.gpg" >/dev/null; then
+            sudo chmod 644 "/etc/apt/keyrings/${keyid}.gpg"
+            print_success "Chiave $keyid aggiunta in /etc/apt/keyrings/"
+            print_warn "Aggiorna i file .list per usare: signed-by=/etc/apt/keyrings/${keyid}.gpg"
+        else
+            print_error "Impossibile scaricare o installare la chiave $keyid"
+        fi
+    done
+    print_msg "Aggiornamento delle sorgenti apt..."
+    apt update
+    print_success "Aggiornamento completato."
+}
+
 # Funzione principale Script
 main() {
     show_title       # Show Titolo Script
