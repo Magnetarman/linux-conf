@@ -2,13 +2,14 @@
 	<img src="https://raw.githubusercontent.com/Magnetarman/linux-conf/refs/heads/Readme-Rework/Banner.png" alt="linx-conf-banner" width="800">
 </p>
 <p align="center">
-	<em><code>❯ REPLACE-ME</code></em>
+	<em><code>Script di configurazione automatica per sistemi basati su Ubuntu (come Linux Mint, Kubuntu ecc.) ed Arch Linux (come Endeavouros). Questo script installa e configura una selezione di applicazioni e strumenti comunemente utilizzati, ottimizza le impostazioni di sistema e configura i mirror per prestazioni ottimali.</code></em>
 </p>
 <p align="center">
-	<img src="https://img.shields.io/github/license/Magnetarman/linux-conf?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
-	<img src="https://img.shields.io/github/last-commit/Magnetarman/linux-conf?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
+<img src="https://img.shields.io/badge/version-2.2.0-blue.svg" alt="versione">
+<img src="https://img.shields.io/github/last-commit/Magnetarman/linux-conf?style=default&logo=git&logoColor=white&color=0080ff" alt="last-commit">
 	<img src="https://img.shields.io/github/languages/top/Magnetarman/linux-conf?style=default&color=0080ff" alt="repo-top-language">
-	<img src="https://img.shields.io/github/languages/count/Magnetarman/linux-conf?style=default&color=0080ff" alt="repo-language-count">
+  <img src="https://img.shields.io/github/languages/count/Magnetarman/linux-conf?style=default&color=0080ff" alt="repo-language-count">
+	<img src="https://img.shields.io/github/license/Magnetarman/linux-conf?style=default&logo=opensourceinitiative&logoColor=white&color=0080ff" alt="license">
 </p>
 <p align="center"><!-- default option, no dependency badges. -->
 </p>
@@ -17,38 +18,20 @@
 </p>
 <br>
 
-## 🔗 Quick Links
-
-- [� Quick Links](#-quick-links)
-- [📍 Overview](#-overview)
-- [👾 Features](#-features)
-- [📁 Project Structure](#-project-structure)
-  - [📂 Project Index](#-project-index)
-- [🚀 Getting Started](#-getting-started)
-  - [☑️ Prerequisites](#️-prerequisites)
-  - [⚙️ Installation](#️-installation)
-  - [🤖 Usage](#-usage)
-  - [🧪 Testing](#-testing)
-- [📌 Project Roadmap](#-project-roadmap)
-- [🔰 Contributing](#-contributing)
-- [🎗 License](#-license)
-- [🙌 Acknowledgments](#-acknowledgments)
-
----
-
-## 📍 Overview
-
-<code>❯ REPLACE-ME</code>
-
----
-
 ## 👾 Features
 
-<code>❯ REPLACE-ME</code>
+**ATTENZIONE** - Lo script rileva automaticamente la tua distro linux e si configura automaticamente.
+
+> [!Note]
+> La versione 2.0 è in **sviluppo attivo**.
+>
+> Lo script per Linux Mint è in fase **RELEASE**.
+>
+> Lo script per Arch linux è in fase **Alpha**.
 
 ---
 
-## 📁 Project Structure
+## 📁 Struttura Cartelle
 
 ```sh
 └── linux-conf/
@@ -64,10 +47,11 @@
     │   ├── setup_games.sh
     │   ├── setup_mh.sh
     │   └── setup_terminal.sh
+    ├── arch
     └── run.sh
 ```
 
-### 📂 Project Index
+### 📂 Index Progetto
 
 <details open>
 	<summary><b><code>LINUX-CONF/</code></b></summary>
