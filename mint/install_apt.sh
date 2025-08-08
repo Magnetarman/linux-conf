@@ -22,10 +22,13 @@ PKGS["Giochi"]="steam lutris goverlay"
 PKGS["Librerie giochi"]="libgnutls30 libgtk2.0-0 libgtk-3-0 libpulse0 alsa-base alsa-utils libasound2-plugins libgif7 libpng16-16 libopenal1 libxcomposite1 libxinerama1 libncurses6 vulkan-tools libvulkan1 mesa-vulkan-drivers ocl-icd-libopencl1 libva2 libgstreamer-plugins-base1.0-0 libsdl2-2.0-0 libv4l-0 libsqlite3-0"
 PKGS["Librerie giochi 32-bit"]="libgl1:i386 libgnutls30:i386 libgtk2.0-0:i386 libgtk-3-0:i386 libpulse0:i386 libasound2-plugins:i386 libgif7:i386 libpng16-16:i386 libopenal1:i386 libxcomposite1:i386 libxinerama1:i386 libncurses6:i386 libvulkan1:i386 mesa-vulkan-drivers:i386 libva2:i386 libgstreamer-plugins-base1.0-0:i386 libsdl2-2.0-0:i386 libv4l-0:i386 libsqlite3-0:i386"
 
-for cat in "${!PKGS[@]}"; do
-    print_msg "Installazione pacchetti: $cat"
-    sudo apt update && sudo apt install -y ${PKGS[$cat]} && print_success "$cat installati con successo" || print_error "Errore durante l'installazione di $cat"
-done
+
+install_packages() {
+    for cat in "${!PKGS[@]}"; do
+        print_msg "Installazione pacchetti: $cat"
+        sudo apt update && sudo apt install -y ${PKGS[$cat]} && print_success "$cat installati con successo" || print_error "Errore durante l'installazione di $cat"
+    done
+}
 
 # Funzione per ritornare allo script principale
 return_to_main() {
