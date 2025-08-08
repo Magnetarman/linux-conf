@@ -88,7 +88,7 @@ install_deb_packages() {
     print_msg "Installazione libnss3-tools..."; sudo apt update; sudo apt install -y libnss3-tools
     rm -f libtinfo5_6.4-2_amd64.deb libncurses5_6.4-2_amd64.deb libaio1_0.3.113-4_amd64.deb
     print_msg "Dipendenze installate. Procedendo con Local by Flywheel..."
-    install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/releases-stable/9.2.4+6788/local-9.2.4-linux.deb"
+    install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/stable/latest/deb"
 }
 
 install_appimage() {
@@ -152,10 +152,12 @@ generate_launcher_from_appimage() {
     fi
     mkdir -p "$real_home/.local/share/applications" "$real_home/Desktop"
     mkdir -p "/usr/share/applications" 2>/dev/null || true
+
+    # Genera file .desktop migliorato
     local desktop_content="[Desktop Entry]
 Name=${desktop_name}
 Comment=${comment_line}
-Exec=\"${exec_line}\"
+Exec=${exec_line}
 Icon=${final_icon_path}
 Terminal=false
 Type=Application
