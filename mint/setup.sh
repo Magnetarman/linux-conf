@@ -30,7 +30,7 @@ show_title() {
     cat <<"EOF"
 ┌───────────────────────────────────────────────────────────────────┐
 │                  Auto Install - Mint Version                      │
-│                  v2.1.1 -- By MagnetarMan                         │
+│                  v2.2.0 -- By MagnetarMan                         │
 └───────────────────────────────────────────────────────────────────┘
 
 EOF
@@ -207,7 +207,7 @@ show_outro() {
 ┌───────────────────────────────────────────────────────────────────┐
 │                  Installazione Completata con Successo!           │
 │                  Controlla i log per eventuali errori.            │
-|                   v2.1.1 -- By MagnetarMan                        │
+|                   v2.2.0 -- By MagnetarMan                        │
 └───────────────────────────────────────────────────────────────────┘   
 EOF
 
