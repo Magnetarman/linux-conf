@@ -40,6 +40,23 @@ EOF
     sleep 3
 }
 
+create_log() {
+    # Salva tutto l'output dello script in un file di log nella stessa cartella
+    local log_file="$SCRIPT_DIR/auto_install_mint_$(date +%Y%m%d_%H%M%S).log"
+    print_warn "Tutto l'output verrà salvato in: $log_file"
+    print_warn "Se riscontri errori, invia questo file di log per investigare la problematica."
+    for i in 5 4 3 2 1; do
+        echo -ne "${YELLOW}Continuo tra $i...${RESET}\r"
+        sleep 1
+    done
+    echo
+    # Rilancia lo script reindirizzando stdout e stderr su tee
+    if [ -z "$LOGGING_ACTIVE" ]; then
+        export LOGGING_ACTIVE=1
+        exec &> >(tee "$log_file")
+    fi
+}
+
 # Utilità
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
@@ -160,6 +177,31 @@ clean_os() {
     print_success "Aggiornamento e pulizia completati!"
 }
 
+add_keys() {
+    print_msg "Ricerca e aggiunta automatica delle chiavi GPG mancanti per i repository APT..."
+    local missing_keys keyid url
+    # Esegui apt update e cattura le key mancanti
+    missing_keys=$(apt update 2>&1 | grep 'NO_PUBKEY' | awk '{print $NF}' | sort -u)
+    if [[ -z "$missing_keys" ]]; then
+        print_success "Nessuna chiave mancante rilevata."
+        return 0
+    fi
+    for keyid in $missing_keys; do
+        print_warn "Aggiungo chiave mancante: $keyid"
+        url="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${keyid}"
+        if curl -fsSL "$url" | gpg --dearmor | sudo tee "/etc/apt/keyrings/${keyid}.gpg" >/dev/null; then
+            sudo chmod 644 "/etc/apt/keyrings/${keyid}.gpg"
+            print_success "Chiave $keyid aggiunta in /etc/apt/keyrings/"
+            print_warn "Aggiorna i file .list per usare: signed-by=/etc/apt/keyrings/${keyid}.gpg"
+        else
+            print_error "Impossibile scaricare o installare la chiave $keyid"
+        fi
+    done
+    print_msg "Aggiornamento delle sorgenti apt..."
+    apt update
+    print_success "Aggiornamento completato."
+}
+
 show_outro() {
     cat <<"EOF"
 ┌───────────────────────────────────────────────────────────────────┐
@@ -190,34 +232,10 @@ reboot_os() {
 }
 
 
-add_keys() {
-    print_msg "Ricerca e aggiunta automatica delle chiavi GPG mancanti per i repository APT..."
-    local missing_keys keyid url
-    # Esegui apt update e cattura le key mancanti
-    missing_keys=$(apt update 2>&1 | grep 'NO_PUBKEY' | awk '{print $NF}' | sort -u)
-    if [[ -z "$missing_keys" ]]; then
-        print_success "Nessuna chiave mancante rilevata."
-        return 0
-    fi
-    for keyid in $missing_keys; do
-        print_warn "Aggiungo chiave mancante: $keyid"
-        url="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${keyid}"
-        if curl -fsSL "$url" | gpg --dearmor | sudo tee "/etc/apt/keyrings/${keyid}.gpg" >/dev/null; then
-            sudo chmod 644 "/etc/apt/keyrings/${keyid}.gpg"
-            print_success "Chiave $keyid aggiunta in /etc/apt/keyrings/"
-            print_warn "Aggiorna i file .list per usare: signed-by=/etc/apt/keyrings/${keyid}.gpg"
-        else
-            print_error "Impossibile scaricare o installare la chiave $keyid"
-        fi
-    done
-    print_msg "Aggiornamento delle sorgenti apt..."
-    apt update
-    print_success "Aggiornamento completato."
-}
-
 # Funzione principale Script
 main() {
     show_title       # Show Titolo Script
+    create_log       # Crea log di tutto lo script
     setup_system     # Ottimizzazione mirror e aggiornamento sistema
     install_flatpack # installazione di Flatpak e Snap
     setup_terminal   # installazione di MyBash, Starship, FZF, Zoxide, Fastfetch, installazione alias
@@ -227,6 +245,7 @@ main() {
     setup_mh         # installazione Prodotti MediaHuman
     install_ollama   # installazione di Ollama
     clean_os         # Pulizia del sistema post installazione
+    add_keys         # Aggiunta automatica delle chiavi GPG mancanti per i repository APT
     show_outro       # Mostra informazioni finali
     print_warn "🔧🔧🔧 Pulizia Completa! Riavviare il Sistema! 🔧🔧🔧" # Messaggio di chiusura
     reboot_os        # Riavvio del sistema
