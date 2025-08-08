@@ -1,75 +1,27 @@
 #!/bin/bash
-
-# Variabili di colore
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
-
-# Configurazione Messaggi
-print_msg() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-print_success() { echo -e "${GREEN}[✅ SUCCESS]${RESET} $1"; }
-print_warn() { echo -e "${YELLOW}[⚠️ WARNING]${RESET} $1"; }
-print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
-print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
-
-# Controlla ed installa comandi mancanti
-check_cmd() {
-    command -v "$1" >/dev/null 2>&1 || {
-        print_msg "Installazione $1..."
-        sudo apt-get install -y "$1" || print_error "Impossibile installare $1"
-    }
-}
+# Colori e messaggi in una sola funzione
+_c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
+print_msg()     { _c info "$@"; }
+print_success() { _c ok "$@"; }
+print_warn()    { _c warn "$@"; }
+print_error()   { _c err "$@"; }
+print_ask()     { _c ask "$@"; }
+check_cmd() { command -v "$1" &>/dev/null || { print_msg "Installazione $1..."; sudo apt-get install -y "$1" || print_error "Impossibile installare $1"; }; }
 
 # Installa un pacchetto DEB con gestione degli errori migliorata
 install_deb() {
-    local pkg="$1" url="$2"
+    local pkg="$1" url="$2" pkg_path
     print_msg "Scarico e installo pacchetto DEB: $pkg"
-
-    # Controlla se il download è necessario (alcune URL potrebbero essere percorsi locali)
-    if [[ "$url" =~ ^https?:// ]]; then
-        print_warn "Download da $url"
-        if ! wget -O "/tmp/$pkg" "$url"; then
-            print_error "Download fallito per $pkg"
-            return 1
-        fi
-        local pkg_path="/tmp/$pkg"
-    else
-        local pkg_path="$url"
-    fi
-
-    # Controlla che il file scaricato sia un DEB valido
-    if ! file "$pkg_path" | grep -q "Debian binary package"; then
-        print_error "File non valido per $pkg - non è un pacchetto DEB valido"
-        return 1
-    fi
-
-    # Installa il pacchetto
-    if sudo dpkg -i "$pkg_path"; then
-        print_success "$pkg installato con successo"
-    else
-        print_warn "Risoluzione dipendenze per $pkg"
-        sudo apt-get install -f -y
-        if sudo dpkg -i "$pkg_path"; then
-            print_success "$pkg installato con successo dopo risoluzione dipendenze"
-        else
-            print_error "Installazione di $pkg fallita"
-            return 1
-        fi
-    fi
-
-    # Pulisci il file scaricato se necessario
+    [[ "$url" =~ ^https?:// ]] && { print_warn "Download da $url"; wget -O "/tmp/$pkg" "$url" || { print_error "Download fallito per $pkg"; return 1; }; pkg_path="/tmp/$pkg"; } || pkg_path="$url"
+    file "$pkg_path" | grep -q "Debian binary package" || { print_error "File non valido per $pkg - non è un pacchetto DEB valido"; return 1; }
+    sudo dpkg -i "$pkg_path" && print_success "$pkg installato con successo" || { print_warn "Risoluzione dipendenze per $pkg"; sudo apt-get install -f -y; sudo dpkg -i "$pkg_path" && print_success "$pkg installato con successo dopo risoluzione dipendenze" || { print_error "Installazione di $pkg fallita"; return 1; }; }
     [[ "$url" =~ ^https?:// ]] && rm -f "$pkg_path"
     return 0
 }
 
 # Setup dei repository
 setup_repos() {
-    # Crea directory e controlla comandi richiesti
-    mkdir -p ~/.local/bin ~/.gnupg
-    sudo mkdir -p /usr/share/keyrings /etc/apt/keyrings /etc/apt/sources.list.d
+    mkdir -p ~/.local/bin ~/.gnupg; sudo mkdir -p /usr/share/keyrings /etc/apt/keyrings /etc/apt/sources.list.d
     for cmd in curl wget gpg apt-transport-https; do check_cmd "$cmd"; done
 
     # Definizione repository
@@ -81,21 +33,12 @@ setup_repos() {
         ["enpass"]="curl -fsSL https://apt.enpass.io/keys/enpass-linux.key | gpg --dearmor | sudo tee /etc/apt/keyrings/enpass.gpg > /dev/null && echo 'deb [signed-by=/etc/apt/keyrings/enpass.gpg] https://apt.enpass.io/ stable main' | sudo tee /etc/apt/sources.list.d/enpass.list"
         ["github-desktop"]="curl -fsSL https://apt.packages.shiftkey.dev/gpg.key | gpg --dearmor | sudo tee /etc/apt/keyrings/shiftkey.gpg > /dev/null && echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/shiftkey.gpg] https://apt.packages.shiftkey.dev/ubuntu/ any main' | sudo tee /etc/apt/sources.list.d/shiftkey.list"
     )
-
-    # Aggiunta repository
-    for repo in "${!repos[@]}"; do
-        print_msg "Aggiungo repository: $repo"
-        eval "${repos[$repo]}" || print_error "Errore aggiungendo $repo"
-    done
-
-    # Aggiorna apt
-    print_warn "Aggiorno apt..."
-    sudo apt-get update
+    for repo in brave vscode chrome onlyoffice enpass github-desktop; do print_msg "Aggiungo repo: $repo"; eval "${repos[$repo]}" || print_error "Errore aggiungendo $repo"; done
+    print_warn "Aggiorno apt..."; sudo apt-get update
 }
 
 # Installa pacchetti dai repository
 install_pkgs() {
-    # Definisci pacchetti
     declare -A pkgs=(
         ["brave"]="brave-browser"
         ["vscode"]="code"
@@ -104,157 +47,80 @@ install_pkgs() {
         ["enpass"]="enpass"
         ["github-desktop"]="github-desktop"
     )
-
-    # Installa pacchetti
-    for src in "${!pkgs[@]}"; do
-        pkg="${pkgs[$src]}"
-        print_msg "Installo $pkg"
-        sudo apt-get install -y "$pkg" || print_error "Errore installando $pkg"
+    for src in brave vscode chrome onlyoffice enpass github-desktop; do
+        print_msg "Installo ${pkgs[$src]}"
+        if [[ "${pkgs[$src]}" == "onlyoffice-desktopeditors" ]]; then
+            # Accetta EULA ttf-mscorefonts-installer se richiesto
+            if apt-cache depends onlyoffice-desktopeditors | grep -q ttf-mscorefonts-installer; then
+                echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+            fi
+            if ! sudo apt-get install -y onlyoffice-desktopeditors; then
+                print_warn "Installazione di onlyoffice-desktopeditors saltata per problemi con EULA o dipendenze."
+            fi
+        else
+            sudo apt-get install -y "${pkgs[$src]}" || print_error "Errore installando ${pkgs[$src]}"
+        fi
     done
 }
 
 # Installa applicazioni Flatpak
 install_flatpak_apps() {
     setup_flatpak
-
-    # Lista applicazioni Flatpak da installare
     local flatpak_apps=(
-        "org.telegram.desktop"
-        "org.localsend.localsend_app"
-        "com.plexamp.Plexamp"
-        "org.upscayl.Upscayl"
-        "com.rustdesk.RustDesk"
-        "org.freac.freac"
-        "org.freefilesync.FreeFileSync"
-        "io.github.jonmagon.kdiskmark"
-        "com.geeks3d.furmark"
-        "io.github.wiiznokes.fan-control"
-        "org.gnome.EasyTAG"
-        "dev.edfloreshz.Tasks"
-        "org.jdownloader.JDownloader"
-        "com.spotify.Client"
-        "org.cryptomator.Cryptomator"
-        "com.ktechpit.whatsie"
-        "io.github.peazip.PeaZip"
+        org.telegram.desktop org.localsend.localsend_app com.plexamp.Plexamp org.upscayl.Upscayl com.rustdesk.RustDesk org.freac.freac org.freefilesync.FreeFileSync io.github.jonmagon.kdiskmark com.geeks3d.furmark io.github.wiiznokes.fan-control org.gnome.EasyTAG dev.edfloreshz.Tasks org.jdownloader.JDownloader com.spotify.Client org.cryptomator.Cryptomator com.ktechpit.whatsie io.github.peazip.PeaZip
     )
-
-    # Installa ogni app
     for app in "${flatpak_apps[@]}"; do
-        print_msg "Installazione $app via Flatpak"
-        if flatpak info "$app" &>/dev/null; then
-            print_warn "$app è già installato"
-        elif flatpak install flathub "$app" -y; then
-            print_success "$app installato con successo"
-        else
-            print_error "Installazione di $app fallita"
-        fi
+        flatpak info "$app" &>/dev/null && print_warn "$app è già installato" || (flatpak install flathub "$app" -y && print_success "$app installato con successo" || print_error "Installazione di $app fallita")
     done
 }
 
 # Installazione file deb
 install_deb_packages() {
     print_msg "Installazione pacchetti DEB..."
+    # Pacchetti DEB principali
+    local debs=(
+        "discord.deb|https://discord.com/api/download?platform=linux&format=deb"
+        "zoom.deb|https://zoom.us/client/latest/zoom_amd64.deb"
+        "obsidian.deb|https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.16/obsidian_1.4.16_amd64.deb"
+    )
+    for d in "${debs[@]}"; do IFS='|' read -r name url <<<"$d"; install_deb "$name" "$url"; done
 
-    # Discord
-    install_deb "discord.deb" "https://discord.com/api/download?platform=linux&format=deb"
-
-    # Zoom
-    install_deb "zoom.deb" "https://zoom.us/client/latest/zoom_amd64.deb"
-
-    # Obsidian
-    install_deb "obsidian.deb" "https://github.com/obsidianmd/obsidian-releases/releases/download/v1.4.16/obsidian_1.4.16_amd64.deb"
-
-    # Installa le dipendenze per Local by Flywheel
+    # Dipendenze Local by Flywheel
     print_msg "Installazione dipendenze per Local by Flywheel..."
-
-    # Download e installazione libtinfo5
-    print_msg "Download e installazione libtinfo5..."
-    curl -O http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb
-    sudo dpkg -i libtinfo5_6.4-2_amd64.deb
-
-    # Download e installazione libncurses5
-    print_msg "Download e installazione libncurses5..."
-    curl -O http://launchpadlibrarian.net/648013227/libncurses5_6.4-2_amd64.deb
-    sudo dpkg -i libncurses5_6.4-2_amd64.deb
-
-    # Download e installazione libaio1
-    print_msg "Download e installazione libaio1..."
-    curl -O http://launchpadlibrarian.net/646633572/libaio1_0.3.113-4_amd64.deb
-    sudo dpkg -i libaio1_0.3.113-4_amd64.deb
-
-    # Installazione libnss3-tools tramite apt
-    print_msg "Installazione libnss3-tools..."
-    sudo apt update
-    sudo apt install -y libnss3-tools
-
-    # Pulizia file temporanei
+    local deps=(
+        "libtinfo5_6.4-2_amd64.deb|http://launchpadlibrarian.net/648013231/libtinfo5_6.4-2_amd64.deb"
+        "libncurses5_6.4-2_amd64.deb|http://launchpadlibrarian.net/648013227/libncurses5_6.4-2_amd64.deb"
+        "libaio1_0.3.113-4_amd64.deb|http://launchpadlibrarian.net/646633572/libaio1_0.3.113-4_amd64.deb"
+    )
+    for dep in "${deps[@]}"; do IFS='|' read -r fname furl <<<"$dep"; print_msg "Download e installazione $fname..."; curl -O "$furl" && sudo dpkg -i "$fname"; done
+    print_msg "Installazione libnss3-tools..."; sudo apt-get update; sudo apt-get install -y libnss3-tools
     rm -f libtinfo5_6.4-2_amd64.deb libncurses5_6.4-2_amd64.deb libaio1_0.3.113-4_amd64.deb
-
     print_msg "Dipendenze installate. Procedendo con Local by Flywheel..."
-
-    # Local By Flywheel
-    install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/releases-stable/9.2.4+6788/local-9.2.4-linux.deb"
+    install_deb "local-by-flywheel.deb" "https://cdn.localwp.com/stable/latest/deb"
 }
 
 install_appimage() {
     print_msg "Installazione pacchetti AppImage..."
-
-    # Determina l'utente reale (non root)
-    REAL_USER=${SUDO_USER:-$USER}
-    REAL_HOME=$(eval echo ~$REAL_USER)
-
+    local REAL_USER=${SUDO_USER:-$USER}
+    local REAL_HOME=$(eval echo ~$REAL_USER)
     print_msg "Installazione per utente: $REAL_USER (home: $REAL_HOME)"
-
-    # Crea directory per le AppImage se non esiste
-    mkdir -p "$REAL_HOME/Applications"
-    chown $REAL_USER:$REAL_USER "$REAL_HOME/Applications" 2>/dev/null || true
-
-    # Lista delle AppImage da installare (nome, URL, nome_desktop_opzionale)
-    local apps=(
-        "chatbox https://chatboxai.app/install_chatbox/linux/"
-        "responsively https://github.com/responsively-org/responsively-app-releases/releases/download/v1.16.0/ResponsivelyApp-1.16.0.AppImage ResponsivelyApp"
+    mkdir -p "$REAL_HOME/Applications" && chown $REAL_USER:$REAL_USER "$REAL_HOME/Applications" 2>/dev/null || true
+    # Definizione AppImage: nome url [desktop_name]
+    local -a apps=(
+        "chatbox|https://chatboxai.app/install_chatbox/linux/|"
+        "responsively|https://github.com/responsively-org/responsively-app-releases/releases/download/v1.16.0/ResponsivelyApp-1.16.0.AppImage|ResponsivelyApp"
     )
-
-    # Installa ogni AppImage
-    for app_info in "${apps[@]}"; do
-        # Separa i parametri
-        read -r app_name download_url desktop_name <<<"$app_info"
-
-        # Verifica che i parametri non siano vuoti
-        if [ -z "$app_name" ] || [ -z "$download_url" ]; then
-            print_msg "Errore: parametri mancanti per $app_info"
-            continue
-        fi
-
-        # Se desktop_name non è specificato, usa app_name
-        desktop_name="${desktop_name:-$app_name}"
-
-        local app_path="$REAL_HOME/Applications/${app_name}.AppImage"
-
-        print_msg "Installazione $app_name da $download_url..."
-
-        # Scarica AppImage con controllo errori
-        if ! wget -q --show-progress -O "$app_path" "$download_url"; then
-            print_msg "Errore nel download di $app_name"
-            rm -f "$app_path" # Rimuovi file parziale se presente
-            continue
-        fi
-
-        # Verifica che il file sia stato scaricato correttamente
-        if [ ! -f "$app_path" ] || [ ! -s "$app_path" ]; then
-            print_msg "Errore: file $app_path non scaricato correttamente"
-            rm -f "$app_path"
-            continue
-        fi
-
-        # Rendi eseguibile e imposta proprietario
-        chmod +x "$app_path"
-        chown $REAL_USER:$REAL_USER "$app_path" 2>/dev/null || true
-
-        # Genera launcher dall'AppImage
-        generate_launcher_from_appimage "$app_path" "$app_name" "$desktop_name" "$REAL_USER" "$REAL_HOME"
-
-        print_success "${app_name^} installato correttamente."
+    for app in "${apps[@]}"; do
+        IFS='|' read -r name url dname <<<"$app"
+        [ -z "$name" ] || [ -z "$url" ] && { print_msg "Errore: parametri mancanti per $app"; continue; }
+        dname="${dname:-$name}"
+        local path="$REAL_HOME/Applications/${name}.AppImage"
+        print_msg "Scarico $name da $url..."
+        wget -q --show-progress -O "$path" "$url" || { print_msg "Errore download $name"; rm -f "$path"; continue; }
+        [ ! -s "$path" ] && { print_msg "Errore: file $path non scaricato correttamente"; rm -f "$path"; continue; }
+        chmod +x "$path" && chown $REAL_USER:$REAL_USER "$path" 2>/dev/null || true
+        generate_launcher_from_appimage "$path" "$name" "$dname" "$REAL_USER" "$REAL_HOME"
+        print_success "${name^} installato correttamente."
     done
 }
 
@@ -265,109 +131,57 @@ generate_launcher_from_appimage() {
     local desktop_name="$3"
     local real_user="$4"
     local real_home="$5"
-
     print_msg "Generazione launcher per $app_name..."
-
-    # Crea directory temporanea per estrazione
-    local tempdir=$(mktemp -d)
-    local extracted_desktop=""
-    local icon_path=""
-    local final_icon_path=""
-
-    # Estrai contenuto AppImage
+    local tempdir=$(mktemp -d) squashfs_root extracted_desktop final_icon_path
     if (cd "$tempdir" && "$app_path" --appimage-extract >/dev/null 2>&1); then
-        local squashfs_root="$tempdir/squashfs-root"
-
-        # Cerca file .desktop esistente nell'AppImage
+        squashfs_root="$tempdir/squashfs-root"
         extracted_desktop=$(find "$squashfs_root" -name "*.desktop" -type f | head -n 1)
-
-        # Cerca icona nell'AppImage
-        local icon_files=$(find "$squashfs_root" -type f \( -name "*.png" -o -name "*.svg" -o -name "*.xpm" -o -name "*.ico" \) | grep -E "(icon|logo|${app_name})" -i | head -n 1)
-
-        # Se non trova icona specifica, cerca .DirIcon o qualsiasi icona
-        if [ -z "$icon_files" ]; then
-            icon_files=$(find "$squashfs_root" -name ".DirIcon" -o -name "*.png" | head -n 1)
-        fi
-
-        if [ -n "$icon_files" ]; then
-            # Copia icona nella directory dell'utente
+        final_icon_path=$(find "$squashfs_root" -type f \( -name "*.png" -o -name "*.svg" -o -name "*.xpm" -o -name "*.ico" \) | grep -E "(icon|logo|${app_name})" -i | head -n 1)
+        [ -z "$final_icon_path" ] && final_icon_path=$(find "$squashfs_root" -name ".DirIcon" -o -name "*.png" | head -n 1)
+        if [ -n "$final_icon_path" ]; then
             mkdir -p "$real_home/.local/share/icons"
+            cp "$final_icon_path" "$real_home/.local/share/icons/${app_name}.png" 2>/dev/null && chown $real_user:$real_user "$real_home/.local/share/icons/${app_name}.png" 2>/dev/null || true
             final_icon_path="$real_home/.local/share/icons/${app_name}.png"
-            cp "$icon_files" "$final_icon_path" 2>/dev/null || true
-            chown $real_user:$real_user "$final_icon_path" 2>/dev/null || true
         fi
     fi
-
-    # Se non è stata trovata un'icona, usa una generica
-    if [ -z "$final_icon_path" ] || [ ! -f "$final_icon_path" ]; then
-        final_icon_path="application-x-executable"
-    fi
-
-    # Genera informazioni per il .desktop
+    [ -z "$final_icon_path" ] || [ ! -f "$final_icon_path" ] && final_icon_path="application-x-executable"
     local exec_line="$app_path"
     local comment_line="$desktop_name AppImage"
     local categories_line="Utility;Development;"
-
-    # Se abbiamo trovato un .desktop esistente, estrai informazioni
     if [ -n "$extracted_desktop" ] && [ -f "$extracted_desktop" ]; then
         print_msg "Trovato file .desktop originale, estraggo informazioni..."
-
-        # Estrai informazioni dal .desktop originale
-        local orig_name=$(grep "^Name=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
-        local orig_comment=$(grep "^Comment=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
-        local orig_categories=$(grep "^Categories=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
-
-        # Usa le informazioni originali se disponibili
+        local orig_name orig_comment orig_categories
+        orig_name=$(grep "^Name=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
+        orig_comment=$(grep "^Comment=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
+        orig_categories=$(grep "^Categories=" "$extracted_desktop" | head -n 1 | cut -d'=' -f2- | sed 's/^[[:space:]]*//')
         [ -n "$orig_name" ] && desktop_name="$orig_name"
         [ -n "$orig_comment" ] && comment_line="$orig_comment"
         [ -n "$orig_categories" ] && categories_line="$orig_categories"
     fi
-
-    # Crea directory per .desktop files
-    mkdir -p "$real_home/.local/share/applications"
+    mkdir -p "$real_home/.local/share/applications" "$real_home/Desktop"
     mkdir -p "/usr/share/applications" 2>/dev/null || true
 
     # Genera file .desktop migliorato
     local desktop_content="[Desktop Entry]
-Version=1.0
-Type=Application
-Name=$desktop_name
-Comment=$comment_line
-Icon=$final_icon_path
-Exec=$exec_line
-Categories=$categories_line
+Name=${desktop_name}
+Comment=${comment_line}
+Exec=${exec_line}
+Icon=${final_icon_path}
 Terminal=false
-StartupNotify=true
-X-AppImage-Version=1.0"
-
-    # Crea launcher nella directory utente
+Type=Application
+Categories=${categories_line}
+"
     local user_desktop_file="$real_home/.local/share/applications/${app_name}.desktop"
-    echo "$desktop_content" >"$user_desktop_file"
-    chmod +x "$user_desktop_file"
-    chown $real_user:$real_user "$user_desktop_file" 2>/dev/null || true
-
-    # Crea launcher sul desktop dell'utente
+    echo "$desktop_content" >"$user_desktop_file" && chmod +x "$user_desktop_file" && chown $real_user:$real_user "$user_desktop_file" 2>/dev/null || true
     local desktop_launcher="$real_home/Desktop/${app_name}.desktop"
-    echo "$desktop_content" >"$desktop_launcher"
-    chmod +x "$desktop_launcher"
-    chown $real_user:$real_user "$desktop_launcher" 2>/dev/null || true
-
-    # Prova a copiare anche in /usr/share/applications (per visibilità globale)
-    if [ -w "/usr/share/applications" ] || [ "$EUID" -eq 0 ]; then
-        echo "$desktop_content" >"/usr/share/applications/${app_name}.desktop" 2>/dev/null || true
-    fi
-
-    # Pulisci directory temporanea
+    echo "$desktop_content" >"$desktop_launcher" && chmod +x "$desktop_launcher" && chown $real_user:$real_user "$desktop_launcher" 2>/dev/null || true
+    ([ -w "/usr/share/applications" ] || [ "$EUID" -eq 0 ]) && echo "$desktop_content" >"/usr/share/applications/${app_name}.desktop" 2>/dev/null || true
     rm -rf "$tempdir"
-
-    # Aggiorna cache del sistema
     update_desktop_cache "$real_user" "$real_home"
-
     print_msg "Launcher creato: $user_desktop_file"
     print_msg "Icona desktop creata: $desktop_launcher"
 }
 
-# Funzione per aggiornare cache desktop
 update_desktop_cache() {
     local real_user="$1"
     local real_home="$2"
@@ -399,22 +213,6 @@ update_desktop_cache() {
     print_msg "Cache aggiornate. Potrebbe essere necessario logout/login per vedere le modifiche."
 }
 
-# Installazione Reaper
-install_reaper() {
-
-    print_msg "Installazione REAPER"
-    wget -qO reaper.tar.xz "https://www.reaper.fm/files/6.x/reaper668_linux_x86_64.tar.xz"
-    mkdir -p /tmp/reaper && tar -xf reaper.tar.xz -C /tmp/reaper
-    sudo /tmp/reaper/reaper_linux_x86_64/install-reaper.sh --install /opt --integrate-desktop
-    rm -rf /tmp/reaper reaper.tar.xz
-
-    # Gruppi e PATH
-    print_msg "Aggiunta ai gruppi video/audio/input"
-    sudo usermod -aG video,audio,input $(whoami)
-
-    echo 'export PATH="$PATH:$HOME/.local/bin"' >>~/.bashrc
-}
-
 install_davinci_resolve() {
     print_msg "Installazione DaVinci Resolve"
 
@@ -429,7 +227,7 @@ install_davinci_resolve() {
             print_error "Impossibile determinare l'utente originale. Esci dalla modalità sudo manualmente."
             return 1
         }
-        sudo -u "$SUDO_USER" bash -c "$(declare -f install_davinci_resolve print_msg print_warn print_error print_success print_ask); cd '$script_dir'; install_davinci_resolve"
+        sudo -u "$SUDO_USER" bash -c "$(declare -f _c print_msg print_warn print_error print_success print_ask install_davinci_resolve); cd '$script_dir'; install_davinci_resolve"
         return $?
     fi
 
@@ -667,7 +465,6 @@ main() {
     install_flatpak_apps
     install_deb_packages
     install_appimage
-    install_reaper
     install_davinci_resolve
     update_path
     print_warn "Alcuni software potrebbero richiedere il riavvio del sistema per funzionare correttamente."

@@ -1,48 +1,20 @@
 #!/bin/bash
-# Variabili di colore
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
-
-# Configurazione Messaggi
-print_msg() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-print_success() { echo -e "${GREEN}[✅ SUCCESS]${RESET} $1"; }
-print_warn() { echo -e "${YELLOW}[⚠️ WARNING]${RESET} $1"; }
-print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
-print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
-
-# Funzione per verificare se un comando esiste
-command_exists() {
-    command -v "$1" &>/dev/null
-}
+# Colori e messaggi in una sola funzione
+_c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
+print_msg()     { _c info "$@"; }
+print_success() { _c ok "$@"; }
+print_warn()    { _c warn "$@"; }
+print_error()   { _c err "$@"; }
+print_ask()     { _c ask "$@"; }
+command_exists() { command -v "$1" &>/dev/null; }
 
 # Verifica di dipendenze necessarie
 check_dependencies() {
     print_msg "Verifica delle dipendenze necessarie..."
-
-    local missing_deps=()
-    for dep in wget gpg apt-get lsb_release; do
-        if ! command_exists "$dep"; then
-            missing_deps+=("$dep")
-        fi
-    done
-
-    if [ ${#missing_deps[@]} -gt 0 ]; then
-        print_warn "Mancano le seguenti dipendenze: ${missing_deps[*]}"
-        print_ask "Vuoi installarle? (s/n)"
-        read -r response
-        if [[ "$response" =~ ^[Ss]$ ]]; then
-            print_msg "Installazione delle dipendenze mancanti..."
-            sudo apt-get update
-            sudo apt-get install -y "${missing_deps[@]}"
-        else
-            print_error "Impossibile procedere senza dipendenze necessarie."
-            exit 1
-        fi
-    fi
+    local miss=(); for d in wget gpg apt-get lsb_release; do command_exists "$d" || miss+=("$d"); done
+    [ ${#miss[@]} -eq 0 ] && return
+    print_warn "Mancano: ${miss[*]}"; print_ask "Vuoi installarle? (s/n)"; read -r r;
+    [[ "$r" =~ ^[Ss]$ ]] && { print_msg "Installazione..."; sudo apt-get update; sudo apt-get install -y "${miss[@]}"; } || { print_error "Impossibile procedere."; exit 1; }
 }
 
 # Installazione MH Youtube to MP3 Converter

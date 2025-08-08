@@ -1,28 +1,24 @@
 #!/bin/bash
-# Variabili di colore
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
+# Colori e messaggi in una sola funzione
+_c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
+print_msg()     { _c info "$@"; }
+print_success() { _c ok "$@"; }
+print_warn()    { _c warn "$@"; }
+print_error()   { _c err "$@"; }
+print_ask()     { _c ask "$@"; }
+command_exists() { command -v "$1" &>/dev/null; }
 
-# Configurazione Messaggi
-print_msg() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-print_success() { echo -e "${GREEN}[✅ SUCCESS]${RESET} $1"; }
-print_warn() { echo -e "${YELLOW}[⚠️ WARNING]${RESET} $1"; }
-print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
-print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
-
-# Funzione per verificare se un comando esiste
-command_exists() {
-    command -v "$1" &>/dev/null
+# Installazione pacchetti multipli se mancanti
+install_if_missing() {
+    local pkgs=()
+    for pkg; do command_exists "$pkg" || pkgs+=("$pkg"); done
+    [ ${#pkgs[@]} -gt 0 ] && sudo apt-get install -y "${pkgs[@]}"
 }
 
-# Verifica dell'installazione pip3
+# Installazione pip3 e aggiunta PATH
 install_pip3() {
     print_msg "nstallazione di pip3"
-    sudo apt install -y python3-pip
+    sudo apt-get install -y python3-pip
 
     print_msg "Aggiunta di ~/.local/bin al PATH se non già presente"
     if [[ ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
@@ -31,156 +27,112 @@ install_pip3() {
     fi
 }
 
-# Installazione di MyBash
+# Installazione MyBash, font, Starship, FZF, Zoxide
 install_mybash() {
     print_msg "Installazione e configurazione MyBash..."
-
-    USER_HOME=$(eval echo "~$SUDO_USER")
+    USER_HOME=$(eval echo "~${SUDO_USER:-$USER}")
     gitpath="$USER_HOME/.mybash"
-
-    # Installazione pacchetti necessari
-    print_msg "Installazione pacchetti necessari..."
-    apt install -y git curl wget unzip fontconfig
-
-    # Clonazione del repository mybash
-    print_msg "Clonazione del repository MyBash..."
-    if [ -d "$gitpath" ]; then
-        print_warn "Directory MyBash esistente. Rimozione in corso..."
-        rm -rf "$gitpath"
-    fi
+    install_if_missing git curl wget unzip fontconfig
+    [ -d "$gitpath" ] && { print_warn "Rimozione MyBash esistente..."; rm -rf "$gitpath"; }
     mkdir -p "$USER_HOME/.local/share"
-    sudo -u "$SUDO_USER" git clone https://github.com/ChrisTitusTech/mybash.git "$gitpath"
+    sudo -u "${SUDO_USER:-$USER}" git clone https://github.com/ChrisTitusTech/mybash.git "$gitpath"
 
-    # Installazione del font Nerd Font
-    print_msg "Verifica e installazione del font MesloLGS Nerd Font..."
+    # Font Nerd Font
     FONT_NAME="MesloLGS Nerd Font Mono"
-    if fc-list :family | grep -iq "$FONT_NAME"; then
-        print_warn "Font '$FONT_NAME' già installato."
-    else
-        print_msg "Installazione del font '$FONT_NAME'..."
+    if ! fc-list :family | grep -iq "$FONT_NAME"; then
+        print_msg "Installazione font '$FONT_NAME'..."
         FONT_URL="https://github.com/ryanoasis/nerd-fonts/releases/latest/download/Meslo.zip"
-        FONT_DIR="$USER_HOME/.local/share/fonts"
+        FONT_DIR="$USER_HOME/.local/share/fonts/$FONT_NAME"
         TEMP_DIR=$(mktemp -d)
-        curl -sSLo "$TEMP_DIR/${FONT_NAME}.zip" "$FONT_URL"
-        unzip "$TEMP_DIR/${FONT_NAME}.zip" -d "$TEMP_DIR"
-        mkdir -p "$FONT_DIR/$FONT_NAME"
-        mv "${TEMP_DIR}"/*.ttf "$FONT_DIR/$FONT_NAME"
+        curl -sSLo "$TEMP_DIR/meslo.zip" "$FONT_URL"
+        unzip "$TEMP_DIR/meslo.zip" -d "$TEMP_DIR"
+        mkdir -p "$FONT_DIR"
+        mv "$TEMP_DIR"/*.ttf "$FONT_DIR" 2>/dev/null
         fc-cache -fv
-        rm -rf "${TEMP_DIR}"
-        print_success "Font '$FONT_NAME' installato con successo."
+        rm -rf "$TEMP_DIR"
+        print_success "Font '$FONT_NAME' installato."
+    else
+        print_warn "Font '$FONT_NAME' già installato."
     fi
 
-    # Installazione di Starship
-    print_msg "Installazione di Starship (prompt personalizzato)..."
-    if ! curl -sSL https://starship.rs/install.sh | sh -s -- -y; then
-        print_error "Si è verificato un errore durante l'installazione di Starship!"
-        exit 1
-    fi
+    # Starship
+    print_msg "Installazione Starship..."
+    curl -sSL https://starship.rs/install.sh | sh -s -- -y || { print_error "Errore Starship!"; exit 1; }
 
-    # Installazione di FZF
-    print_msg "Installazione di FZF (ricerca fuzzy)..."
-    if command_exists fzf; then
+    # FZF
+    if ! command_exists fzf; then
+        apt-get install -y fzf || { print_warn "FZF non trovato, installazione da git..."; sudo -u "${SUDO_USER:-$USER}" git clone --depth 1 https://github.com/junegunn/fzf.git "$USER_HOME/.fzf"; sudo -u "${SUDO_USER:-$USER}" "$USER_HOME/.fzf/install" --all; }
+    else
         print_warn "FZF già installato."
-    else
-        apt install -y fzf || {
-            print_warn "FZF non trovato nei repository. Installazione da git..."
-            sudo -u "$SUDO_USER" git clone --depth 1 https://github.com/junegunn/fzf.git "$USER_HOME/.fzf"
-            sudo -u "$SUDO_USER" "$USER_HOME/.fzf/install" --all
-        }
     fi
 
-    # Installazione di Zoxide
-    print_msg "Installazione di Zoxide (navigazione intelligente tra directory)..."
-    sudo apt install -y zoxide
-    if command_exists zoxide; then
+    # Zoxide
+    if ! command_exists zoxide; then
+        sudo apt-get install -y zoxide || curl -sSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh || { print_error "Errore Zoxide!"; exit 1; }
+    else
         print_warn "Zoxide già installato."
-    else
-        if ! curl -sSL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh; then
-            print_error "Si è verificato un errore durante l'installazione di Zoxide!"
-            exit 1
-        fi
     fi
 
-    # Collegamento dei file di configurazione
-    print_msg "Collegamento dei file di configurazione..."
-    OLD_BASHRC="$USER_HOME/.bashrc"
-    if [ -e "$OLD_BASHRC" ] && [ ! -e "$USER_HOME/.bashrc.bak" ]; then
-        print_warn "Spostamento del vecchio file di configurazione bash in $USER_HOME/.bashrc.bak"
-        if ! mv "$OLD_BASHRC" "$USER_HOME/.bashrc.bak"; then
-            print_error "Impossibile spostare il vecchio file di configurazione bash!"
-            exit 1
-        fi
-    fi
-
-    print_warn "Collegamento del nuovo file di configurazione bash..."
-    ln -svf "$gitpath/.bashrc" "$USER_HOME/.bashrc" || {
-        print_error "Impossibile creare il link simbolico per .bashrc"
-        exit 1
-    }
-
-    # Assicurati che la directory di configurazione esista
+    # Link configurazioni
+    print_msg "Collegamento file configurazione..."
+    [ -e "$USER_HOME/.bashrc" ] && [ ! -e "$USER_HOME/.bashrc.bak" ] && mv "$USER_HOME/.bashrc" "$USER_HOME/.bashrc.bak"
+    ln -svf "$gitpath/.bashrc" "$USER_HOME/.bashrc"
     mkdir -p "$USER_HOME/.config"
-
-    ln -svf "$gitpath/starship.toml" "$USER_HOME/.config/starship.toml" || {
-        print_error "Impossibile creare il link simbolico per starship.toml"
-        exit 1
-    }
-
+    ln -svf "$gitpath/starship.toml" "$USER_HOME/.config/starship.toml"
     print_success "MyBash installato con successo!"
 }
 
-# Configurazione di Fastfetch
+# Fastfetch
 setup_fastfetch() {
-    # Fastfetch da sorgente
     print_msg "Compilazione Fastfetch"
     sudo add-apt-repository -y ppa:fish-shell/release-3
-    sudo apt update
-    sudo apt install -y fish cmake ninja-build pkg-config libpci-dev libvulkan-dev libwayland-dev libxrandr-dev libxcb-randr0-dev libx11-dev
+    sudo apt-get update
+    sudo apt-get install -y fish cmake ninja-build pkg-config libpci-dev libvulkan-dev libwayland-dev libxrandr-dev libxcb-randr0-dev libx11-dev
     git clone https://github.com/fastfetch-cli/fastfetch.git /tmp/fastfetch
     cmake -S /tmp/fastfetch -B /tmp/fastfetch/build -GNinja && ninja -C /tmp/fastfetch/build && sudo ninja -C /tmp/fastfetch/build install
-    rm -rf /tmp/fastfetch
 
-    print_msg "Configurazione di Fastfetch..."
-    if ! command_exists fastfetch; then
-        print_msg "Fastfetch non trovato nei repository standard. Installazione alternativa..."
 
-        # Aggiornamento dipendenze Fastfetch
-        print_warn "Aggiornamento dipendenze Fastfetch"
-        sudo apt update && sudo apt install -y \
-            git cmake build-essential pkg-config \
-            libpci-dev libgl1-mesa-dev
+print_msg "Configurazione di Fastfetch..."
+if ! command_exists fastfetch; then
+    print_msg "Fastfetch non trovato nei repository standard. Installazione alternativa..."
 
-        # Clonazione del repository
-        print_msg "Clonazione repository Fastfetch..."
-        git clone https://github.com/fastfetch-cli/fastfetch.git
-        cd fastfetch
+    # Aggiornamento dipendenze Fastfetch
+    print_warn "Aggiornamento dipendenze Fastfetch"
+    sudo apt-get update && sudo apt-get install -y \
+        git cmake build-essential pkg-config \
+        libpci-dev libgl1-mesa-dev
 
-        # Creazione directory di build
-        print_msg "Compilazione..."
-        mkdir -p build && cd build
-        cmake ..
-        make -j$(nproc)
+    # Clonazione del repository
+    print_msg "Clonazione repository Fastfetch..."
+    git clone https://github.com/fastfetch-cli/fastfetch.git
+    cd fastfetch
 
-        # Installazione
-        print_msg "Installazione..."
-        sudo make install
-        cd ../..
-    else
-        print_warn "Fastfetch è già installato."
-    fi
+    # Creazione directory di build
+    print_msg "Compilazione..."
+    mkdir -p build && cd build
+    cmake ..
+    make -j$(nproc)
 
-    print_msg "Copia file configurazione Fastfetch..."
-    mkdir -p "$HOME/.config/fastfetch"
-    curl -sSLo "$HOME/.config/fastfetch/config.jsonc" https://raw.githubusercontent.com/ChrisTitusTech/mybash/main/config.jsonc
-    print_success "File di configurazione Fastfetch copiato."
+    # Installazione
+    print_msg "Installazione..."
+    sudo make install
+    cd ../..
+else
+    print_warn "Fastfetch è già installato."
+fi
 
-    print_msg "Aggiunta Fastfetch alla shell..."
-    if grep -q "fastfetch" "$HOME/.bashrc"; then
-        print_warn "Fastfetch è già configurato in .bashrc"
-    else
-        echo -e "\n# Avvia Fastfetch all'avvio della shell\nfastfetch" >>"$HOME/.bashrc"
-        print_success "Fastfetch aggiunto a .bashrc"
-    fi
+print_msg "Copia file configurazione Fastfetch..."
+mkdir -p "$HOME/.config/fastfetch"
+curl -sSLo "$HOME/.config/fastfetch/config.jsonc" https://raw.githubusercontent.com/ChrisTitusTech/mybash/main/config.jsonc
+print_success "File di configurazione Fastfetch copiato."
+
+print_msg "Aggiunta Fastfetch alla shell..."
+if grep -q "fastfetch" "$HOME/.bashrc"; then
+    print_warn "Fastfetch è già configurato in .bashrc"
+else
+    echo -e "\n# Avvia Fastfetch all'avvio della shell\nfastfetch" >>"$HOME/.bashrc"
+    print_success "Fastfetch aggiunto a .bashrc"
+fi
 }
 
 # Installazione Font Addizionali (Terminus)
@@ -193,7 +145,7 @@ install_additional_fonts() {
         print_warn "Font Terminus già installato."
     else
         print_msg "Installazione del font Terminus in corso..."
-        apt install -y $FONT_PACKAGE && print_success "Font Terminus installato con successo." || print_warn "Installazione del font fallita, continuo comunque..."
+    apt-get install -y $FONT_PACKAGE && print_success "Font Terminus installato con successo." || print_warn "Installazione del font fallita, continuo comunque..."
     fi
 
     print_msg "Configurazione del font Terminus per la TTY..."
@@ -241,7 +193,7 @@ EOL
         cat >>"$ALIASES_FILE" <<'EOL'
 
 # Alias per aggiornamento completo sistema
-alias upd='flatpak update -y && sudo apt update && sudo apt upgrade -y && sudo apt dist-upgrade -y'
+alias upd='flatpak update -y && sudo apt-get update && sudo apt-get upgrade -y && sudo apt-get dist-upgrade -y'
 EOL
     fi
 
@@ -250,7 +202,7 @@ EOL
         cat >>"$ALIASES_FILE" <<'EOL'
 
 # Alias per pulizia pacchetti inutilizzati
-alias clean='flatpak remove --unused -y && sudo apt autoremove -y && sudo apt autoclean'
+alias clean='flatpak remove --unused -y && sudo apt-get autoremove -y && sudo apt-get autoclean'
 EOL
     fi
 
@@ -277,10 +229,11 @@ main() {
     setup_fastfetch
     install_additional_fonts
     install_alias
-    sleep 2
-    print_warn "Riavvia la shell alla fine dello script per vedere i cambiamenti."
-    sleep 5
-    return_to_main
+
 }
 # Avvio dello script
 main
+sleep 2
+print_warn "Riavvia la shell alla fine dello script per vedere i cambiamenti."
+sleep 5
+return_to_main
