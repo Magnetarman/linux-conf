@@ -1,5 +1,5 @@
 <p align="center">
-	<img src="https://raw.githubusercontent.com/Magnetarman/linux-conf/refs/heads/Banner.png" alt="linx-conf-banner" width="800">
+	<img src="https://raw.githubusercontent.com/Magnetarman/linux-conf/refs/heads/main/Banner.png" alt="linx-conf-banner" width="800">
 </p>
 <p align="center">
 	<em><code>Script di configurazione automatica per sistemi basati su Ubuntu (come Linux Mint, Kubuntu ecc.) ed Arch Linux (come Endeavouros). Questo script installa e configura una selezione di applicazioni e strumenti comunemente utilizzati, ottimizza le impostazioni di sistema e configura i mirror per prestazioni ottimali.</code></em>
