@@ -115,13 +115,16 @@
 
 ## 🚀 Getting Started
 
-### ☑️ Prerequisites
+### ☑️ Prerequisiti
 
-Before getting started with linux-conf, ensure your runtime environment meets the following requirements:
+Prima di iniziare con linux-conf, assicurati che il tuo ambiente di runtime soddisfi i seguenti requisiti:
 
 - **Programming Language:** Shell
+- **Richiesta Connessione ad internet durante l'esecuzione dello script**
+- Richiesto intervento manuale minimo. **ATTENZIONE** a quando lo script visualizzerà la linea [🤔 ASK]
+- **Spazio su disco necessario**: 50GB/80GB Liberi (l'installazione di Da Vinci Resolve richiede molto spazio in quanto verrà effettuata una coversione totale del pacchetto di installazione)
 
-### ⚙️ Installation
+### ⚙️ Installatione
 
 Install linux-conf using one of the following methods:
 
@@ -143,11 +146,6 @@ Install linux-conf using one of the following methods:
 
 echo 'INSERT-INSTALL-COMMAND-HERE'
 
-### 🤖 Usage
-
-Run linux-conf using the following command:
-echo 'INSERT-RUN-COMMAND-HERE'
-
 ### 🧪 Testing
 
 Run the test suite using the following command:
@@ -157,61 +155,58 @@ echo 'INSERT-TEST-COMMAND-HERE'
 
 ## 📌 Project Roadmap
 
-- [x] **`Task 1`**: <strike>Implement feature one.</strike>
-- [ ] **`Task 2`**: Implement feature two.
-- [ ] **`Task 3`**: Implement feature three.
+- [x] **`V1.0`**: <strike>Release Pubblica</strike>
+- [x] **`V1.1.0`**: <strike>Refactor Struttura in forma modulare.</strike>
+- [x] **`V2.0.0`**: <strike>Refator totale progetto per future implementazioni. Versione linux Mint utilizzabile.</strike>
+- [x] **`V2.1.0`**: <strike>Aggiornamento App.</strike>
+- [x] **`V2.2.0`**: <strike>Refacor ed ottimizzazione codice vari script, test totale sulla funzionalità. Fix Warning. Aggiornamento script installazione Da Vinci con supporto alla versione 20.</strike>
+- [ ] **`V3.0.0`**: Supporto per Arch Linux
+- [ ] **`V4.0.0`**: Scelta interattiva al primo avvio su quali App/Funzioni installare.
 
 ---
 
-## 🔰 Contributing
+## 🔰 Come Contribuire
 
-- **💬 [Join the Discussions](https://github.com/Magnetarman/linux-conf/discussions)**: Share your insights, provide feedback, or ask questions.
-- **🐛 [Report Issues](https://github.com/Magnetarman/linux-conf/issues)**: Submit bugs found or log feature requests for the `linux-conf` project.
-- **💡 [Submit Pull Requests](https://github.com/Magnetarman/linux-conf/blob/main/CONTRIBUTING.md)**: Review open PRs, and submit your own PRs.
+- **💬 [Partecipa alle Discussioni](https://t.me/GlitchTalkGroup)**: Condividi le tue idee, fornisci feedback o fai domande.
+- **🐛 [Segnala Problemi](https://github.com/Magnetarman/linux-conf/issues)**: Segnala i bug trovati o richiedi nuove funzionalità per il progetto \Python-Script`.
+- **💡 [ Invia Pull Request](https://github.com/Magnetarman/linux-conf/issues)**: Revisiona le Pull Request (PR) aperte e invia le tue.
 
 <details closed>
-<summary>Contributing Guidelines</summary>
+<summary>Linee Guida</summary>
 
-1. **Fork the Repository**: Start by forking the project repository to your github account.
-2. **Clone Locally**: Clone the forked repository to your local machine using a git client.
+1. **Esegui il Fork della Repository**: Inizia facendo il "fork" della repository del progetto sul tuo account GitHub.
+2. **Clona in Locale**: Clona la repository di cui hai fatto il fork sulla tua macchina locale usando un client Git.
    ```sh
    git clone https://github.com/Magnetarman/linux-conf
    ```
-3. **Create a New Branch**: Always work on a new branch, giving it a descriptive name.
-   ```sh
-   git checkout -b new-feature-x
-   ```
-4. **Make Your Changes**: Develop and test your changes locally.
-5. **Commit Your Changes**: Commit with a clear message describing your updates.
-   ```sh
-   git commit -m 'Implemented new feature x.'
-   ```
-6. **Push to github**: Push the changes to your forked repository.
-   ```sh
-   git push origin new-feature-x
-   ```
-7. **Submit a Pull Request**: Create a PR against the original project repository. Clearly describe the changes and their motivations.
-8. **Review**: Once your PR is reviewed and approved, it will be merged into the main branch. Congratulations on your contribution!
-</details>
 
-<details closed>
-<summary>Contributor Graph</summary>
-<br>
-<p align="left">
-   <a href="https://github.com{/Magnetarman/linux-conf/}graphs/contributors">
-      <img src="https://contrib.rocks/image?repo=Magnetarman/linux-conf">
-   </a>
-</p>
+````
+3. **Crea un Nuovo Branch**: Lavora sempre su un nuovo "branch", dandogli un nome descrittivo.
+ ```sh
+ git checkout -b new-feature-x
+````
+
+4. **Apporta le Tue Modifiche**: Sviluppa e testa le tue modifiche in locale.
+5. **Esegui il Commit delle Tue Modifiche**: Fai il "commit" con un messaggio chiaro che descriva i tuoi aggiornamenti.
+   ```sh
+   git commit -m 'Implementata nuova funzionalità x.'
+   ```
+6. **Esegui il Push su GitHub**: Fai il "push" delle modifiche sulla tua repository "fork".
+   ```sh
+   git push origin nuova-funzionalita-x
+   ```
+7. **Invia una Pull Request**: Crea una "Pull Request" (PR) verso la repository originale del progetto. Descrivi chiaramente le modifiche e le loro motivazioni.
+8. **Revisione**: Una volta che la tua PR sarà revisionata e approvata, verrà unita ("merged") nel branch principale. Congratulazioni per il tuo contributo!
 </details>
 
 ---
 
-## 🎗 License
+## 🎗 Licenza
 
-This project is protected under the [SELECT-A-LICENSE](https://choosealicense.com/licenses) License. For more details, refer to the [LICENSE](https://choosealicense.com/licenses/) file.
+Creato con ❤️ da [Magnetarman](https://magnetarman.com/). Licenza MIT. Se trovi questo progetto utile, considera di lasciare una ⭐
 
 ---
 
-## 🙌 Acknowledgments
+## 🙌 Personalizzazioni
 
-- List any resources, contributors, inspiration, etc. here.
+- Lo script può essere personalizzato semplicemente cancellando o commentando all'interno delle varie sezioni le varie linee di codice dei software che non si vogliono installare. Per disattivare intere sezioni dello script potete commetare la sezione da disattivare nel file 'run.sh' nella cartella mint (Se avete os Debian Based) o Arch (Per gli OS arch based) in questo modo lo script salterà ovviamente tutto il codice commentato.
