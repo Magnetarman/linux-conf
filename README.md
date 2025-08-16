@@ -136,20 +136,17 @@ Install linux-conf using one of the following methods:
 ❯ git clone https://github.com/Magnetarman/linux-conf
 ```
 
-2. Navigate to the project directory:
+2. Utilizza il terminale per Navigare fino alla cartella:
 
 ```sh
 ❯ cd linux-conf
 ```
 
-3. Install the project dependencies:
+3. Lancia lo script di run:
 
-echo 'INSERT-INSTALL-COMMAND-HERE'
-
-### 🧪 Testing
-
-Run the test suite using the following command:
-echo 'INSERT-TEST-COMMAND-HERE'
+```sh
+❯ sudo bash run.sh
+```
 
 ---
 
