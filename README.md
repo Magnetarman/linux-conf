@@ -126,11 +126,9 @@ Prima di iniziare con linux-conf, assicurati che il tuo ambiente di runtime sodd
 
 ### ⚙️ Installatione
 
-Install linux-conf using one of the following methods:
+Installa linux-conf utilizzando il seguente metodo:
 
-**Build from source:**
-
-1. Clone the linux-conf repository:
+1. Clona la repository linux-conf:
 
 ```sh
 ❯ git clone https://github.com/Magnetarman/linux-conf
@@ -206,4 +204,21 @@ Creato con ❤️ da [Magnetarman](https://magnetarman.com/). Licenza MIT. Se tr
 
 ## 🙌 Personalizzazioni
 
-- Lo script può essere personalizzato semplicemente cancellando o commentando all'interno delle varie sezioni le varie linee di codice dei software che non si vogliono installare. Per disattivare intere sezioni dello script potete commetare la sezione da disattivare nel file 'run.sh' nella cartella mint (Se avete os Debian Based) o Arch (Per gli OS arch based) in questo modo lo script salterà ovviamente tutto il codice commentato.
+**Lo script può essere personalizzato**:
+
+- Aprire il file `run.sh` presente nella cartella:
+
+  - **`mint/`** se si utilizza una distribuzione **Debian-based (Ubuntu, Linux Mint, ecc.)**
+  - **`arch/`** se si utilizza una distribuzione **Arch-based**
+
+- Per **evitare l’installazione di un singolo software**:
+
+  - Individuare all’interno della sezione corrispondente le righe di codice che installano quel software.
+  - Cancellare tali righe **oppure** aggiungere `#` all’inizio di ciascuna riga per **commentarle**.
+
+- Per **disattivare l’intera sezione di installazione** (es. “Editor”, “Browser”, “Tool di sviluppo”):
+
+  - Commentare tutte le righe della sezione aggiungendo `#` davanti ad ognuna, **oppure**
+  - Commentare direttamente il richiamo della sezione dentro `run.sh`.
+
+- lo script ovviamente **salterà automaticamente** tutte le parti commentate e installerà solo i pacchetti lasciati attivi.
