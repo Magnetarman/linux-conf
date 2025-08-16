@@ -61,7 +61,7 @@
 			<table>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/run.sh'>run.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Script di avvio generale. Analizza il sistema (Debian Based o Arch Based) ed avvia in cascata lo script corrispondente al sistema operativo rilevato.</code></td>
 			</tr>
 			</table>
 		</blockquote>
@@ -72,39 +72,39 @@
 			<table>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/install_apt.sh'>install_apt.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Installazione delle app che utilizzano il gestiore pacchetti predefinito di debian APT</code></td>
 			</tr>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/install_flatpack.sh'>install_flatpack.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Installazione delle app nativamente non supportate da APT tramite il gestore Flatpack</code></td>
 			</tr>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/makeresolvedeb.sh'>makeresolvedeb.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Script per la corretta conversione di Da Vinci Resolve (free Version) Thanks with ❤️ to Daniel Tufvesson su Debian</code></td>
 			</tr>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/setup_mh.sh'>setup_mh.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Installazione delle app Mediahuman tramite Wine o metodi custom per avere l'istallazione completa.</code></td>
 			</tr>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/install_external.sh'>install_external.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Installazione delle app tramite App image ed installazione diretta del pacchetto .deb non incluso nelle repositori ufficiali.</code></td>
 			</tr>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/setup_terminal.sh'>setup_terminal.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Installazione personalizzazioni del terminale linux dall'idea di Chris Tech Titus.</code></td>
 			</tr>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/setup.sh'>setup.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Script avviato da 'run.sh' in caso di OS debian Based. Orchestra l'ordine e la corretta installazione delle app inserite negli altri script.</code></td>
 			</tr>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/MediaHuman Audio Converter.desktop'>MediaHuman Audio Converter.desktop</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Scorciatoia del desktop per Media Human converter. Verrà copiata sul desktop dallo script realtivo in quanto l'installazione base alcune volte fallisce nella sua creazione.</code></td>
 			</tr>
 			<tr>
 				<td><b><a href='https://github.com/Magnetarman/linux-conf/blob/master/mint/setup_games.sh'>setup_games.sh</a></b></td>
-				<td><code>❯ REPLACE-ME</code></td>
+				<td><code>❯ Installazione dei laucher di Steam, gestione giochi Epic Store e delle librerie necessarie per avere tutto il necessario per giocare senza problemi di dipendenze.</code></td>
 			</tr>
 			</table>
 		</blockquote>
