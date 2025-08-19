@@ -46,6 +46,23 @@ EOF
     sleep 3
 }
 
+create_log() {
+    # Salva tutto l'output dello script in un file di log nella stessa cartella
+    local log_file="$SCRIPT_DIR/auto_install_mint_$(date +%Y%m%d_%H%M%S).log"
+    print_warn "Tutto l'output verrà salvato in: $log_file"
+    print_warn "Se riscontri errori, invia questo file di log per investigare la problematica."
+    for i in 5 4 3 2 1; do
+        echo -ne "${YELLOW}Continuo tra $i...${RESET}\r"
+        sleep 1
+    done
+    echo
+    # Rilancia lo script reindirizzando stdout e stderr su tee
+    if [ -z "$LOGGING_ACTIVE" ]; then
+        export LOGGING_ACTIVE=1
+        exec &> >(tee "$log_file")
+    fi
+}
+
 # Utilità
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
@@ -220,6 +237,7 @@ reboot_os() {
 # Funzione principale Script
 main() {
     show_title       # Show Titolo Script
+    create_log       # Crea log di tutto lo script
     setup_system     # Ottimizzazione mirror e aggiornamento sistema
     install_flatpack # installazione di Flatpak e Snap
     setup_terminal   # installazione di MyBash, Starship, FZF, Zoxide, Fastfetch, installazione alias
