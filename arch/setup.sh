@@ -1,5 +1,5 @@
 #!/bin/bash
-## Wrapper generale per l'installazione automatica di Linux Mint
+## Wrapper generale per l'installazione automatica di Arch Linux
 # Verifica permessi di root
 if [ "$(id -u)" != "0" ]; then
     echo "⚠️  Questo script richiede i permessi di amministratore."
@@ -16,21 +16,27 @@ while true; do
     kill -0 "$$" || exit
 done 2>/dev/null &
 
-# Colori e messaggi in una sola funzione
-_c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
-print_msg()     { _c info "$@"; }
-print_success() { _c ok "$@"; }
-print_warn()    { _c warn "$@"; }
-print_error()   { _c err "$@"; }
-print_ask()     { _c ask "$@"; }
-command_exists() { command -v "$1" &>/dev/null; }
+# Variabili di colore
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+RESET='\033[0m'
+
+# Configurazione Messaggi
+print_msg() { echo -e "${BLUE}[INFO]${RESET} $1"; }
+print_success() { echo -e "${GREEN}[✅ SUCCESS]${RESET} $1"; }
+print_warn() { echo -e "${YELLOW}[⚠️ WARNING]${RESET} $1"; }
+print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
+print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
 
 show_title() {
     clear
     cat <<"EOF"
 ┌───────────────────────────────────────────────────────────────────┐
-│                  Auto Install - Mint Version                      │
-│                  v2.2.0 -- By MagnetarMan                         │
+│                  Auto Install - Arch Version                      │
+│                  v1.0.0 Beta -- By MagnetarMan                    │
 └───────────────────────────────────────────────────────────────────┘
 
 EOF
@@ -38,23 +44,6 @@ EOF
     print_success "Benvenuto nel programma di installazione!"
     print_warn "Inizializzazione script in corso... Attendere 3 secondi."
     sleep 3
-}
-
-create_log() {
-    # Salva tutto l'output dello script in un file di log nella stessa cartella
-    local log_file="$SCRIPT_DIR/auto_install_mint_$(date +%Y%m%d_%H%M%S).log"
-    print_warn "Tutto l'output verrà salvato in: $log_file"
-    print_warn "Se riscontri errori, invia questo file di log per investigare la problematica."
-    for i in 5 4 3 2 1; do
-        echo -ne "${YELLOW}Continuo tra $i...${RESET}\r"
-        sleep 1
-    done
-    echo
-    # Rilancia lo script reindirizzando stdout e stderr su tee
-    if [ -z "$LOGGING_ACTIVE" ]; then
-        export LOGGING_ACTIVE=1
-        exec &> >(tee "$log_file")
-    fi
 }
 
 # Utilità
@@ -65,36 +54,58 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 setup_system() {
     print_msg "Aggiornamento del sistema..."
-    if DEBIAN_FRONTEND=noninteractive apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get upgrade -yqq; then
-        print_success "Sistema aggiornato con successo."
-    else
-        print_error "Errore durante l'aggiornamento del sistema. Controlla la connessione o i repository."
-    fi
+    pacman -Syu --noconfirm && print_success "Sistema aggiornato con successo."
+
+    # Aggiornamento e installazione di wget se non presente
     print_msg "Controllo installazione di wget..."
-    if command_exists wget; then
-        print_msg "WGet già installato."
+    if ! command_exists wget; then
+        pacman -S --noconfirm wget && print_success "WGet installato con successo."
     else
-    if DEBIAN_FRONTEND=noninteractive apt-get install -yqq wget; then
-            print_success "WGet installato con successo."
-        else
-            print_error "Errore nell'installazione di wget."
-        fi
+        print_msg "WGet già installato."
     fi
 }
 
-# Wrapper generico per chiamare script di installazione
-call_script() {  # $1=nome_script $2=descrizione $3=success_msg
-    print_msg "$2"
-    bash "$SCRIPT_DIR/$1"
-    print_success "$3"
+# Installazione di flatpak e flathub
+install_flatpack() {
+    print_msg "Installazione di flatpak e flathub in corso..."
+    bash "$SCRIPT_DIR/install_flatpack.sh"
+    print_success "Flatpak e Flathub installati con successo."
 }
 
-install_flatpack()   { call_script install_flatpack.sh   "Installazione di flatpak e flathub in corso..." "Flatpak e Flathub installati con successo."; }
-setup_terminal()     { call_script setup_terminal.sh     "Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch in corso..." "MyBash, Starship, FZF, Zoxide, Fastfetch installati con successo."; }
-install_apt()        { call_script install_apt.sh        "Installazione pacchetti in corso..." "Pacchetti installati con successo."; }
-install_external()   { call_script install_external.sh   "Installazione pacchetti esterni in corso..." "Pacchetti esterni installati con successo."; }
-setup_games()    { call_script setup_games.sh    "Installazione Driver e Supporto Giochi in corso..." "Giochi installati con successo."; }
-setup_mh()       { call_script setup_mh.sh       "Installazione Prodotti MediaHuman in corso..." "Prodotti MediaHuman installati con successo."; }
+# Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch
+setup_terminal() {
+    print_msg "Installazione di MyBash, Starship, FZF, Zoxide, Fastfetch in corso..."
+    bash "$SCRIPT_DIR/setup_terminal.sh"
+    print_success "MyBash, Starship, FZF, Zoxide, Fastfetch installati con successo."
+}
+
+# Installazione Pacchetti APT
+install_apt() {
+    print_msg "Installazione pacchetti in corso..."
+    bash "$SCRIPT_DIR/install_apt.sh"
+    print_success "Pacchetti installati con successo."
+}
+
+# Installazione Pacchetti Esterni
+install_external() {
+    print_msg "Installazione pacchetti esterni in corso..."
+    bash "$SCRIPT_DIR/install_external.sh"
+    print_success "Pacchetti esterni installati con successo."
+}
+
+# Installazione Supporto Giochi
+setup_games() {
+    print_msg "Installazione Driver e Supporto Giochi in corso..."
+    bash "$SCRIPT_DIR/setup_games.sh"
+    print_success "Giochi installati con successo."
+}
+
+# Installazione Prodotti MediaHuman
+setup_mh() {
+    print_msg "Installazione Prodotti MediaHuman in corso..."
+    bash "$SCRIPT_DIR/setup_mh.sh"
+    print_success "Prodotti MediaHuman installati con successo."
+}
 
 # Installazione e Configurazione Ollama
 install_ollama() {
@@ -102,7 +113,7 @@ install_ollama() {
 
     # Verifica dipendenze
     if ! command_exists curl; then
-        apt-get install -yqq curl
+        apt install -yqq curl
     fi
 
     print_msg "Scarico lo script di installazione di Ollama..."
@@ -157,14 +168,14 @@ clean_os() {
     # Rimuovi LibreOffice e pacchetti correlati solo se presenti
     if dpkg -l | grep -q 'libreoffice'; then
         print_msg "Rimuovo LibreOffice e tutti i pacchetti correlati con purge..."
-        apt-get purge -y 'libreoffice*'
+        apt purge -y 'libreoffice*'
     fi
 
     print_msg "Rimozione pacchetti non necessari..."
-    apt-get autoremove -y --purge
+    apt autoremove -y --purge
 
     print_msg "Pulizia cache apt..."
-    apt-get clean
+    apt clean
 
     print_msg "Pulizia dei file temporanei..."
     rm -rf /var/tmp/*
@@ -177,37 +188,12 @@ clean_os() {
     print_success "Aggiornamento e pulizia completati!"
 }
 
-add_keys() {
-    print_msg "Ricerca e aggiunta automatica delle chiavi GPG mancanti per i repository APT..."
-    local missing_keys keyid url
-    # Esegui apt update e cattura le key mancanti
-    missing_keys=$(apt-get update 2>&1 | grep 'NO_PUBKEY' | awk '{print $NF}' | sort -u)
-    if [[ -z "$missing_keys" ]]; then
-        print_success "Nessuna chiave mancante rilevata."
-        return 0
-    fi
-    for keyid in $missing_keys; do
-        print_warn "Aggiungo chiave mancante: $keyid"
-        url="https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x${keyid}"
-        if curl -fsSL "$url" | gpg --dearmor | sudo tee "/etc/apt/keyrings/${keyid}.gpg" >/dev/null; then
-            sudo chmod 644 "/etc/apt/keyrings/${keyid}.gpg"
-            print_success "Chiave $keyid aggiunta in /etc/apt/keyrings/"
-            print_warn "Aggiorna i file .list per usare: signed-by=/etc/apt/keyrings/${keyid}.gpg"
-        else
-            print_error "Impossibile scaricare o installare la chiave $keyid"
-        fi
-    done
-    print_msg "Aggiornamento delle sorgenti apt..."
-    apt-get update
-    print_success "Aggiornamento completato."
-}
-
 show_outro() {
     cat <<"EOF"
 ┌───────────────────────────────────────────────────────────────────┐
 │                  Installazione Completata con Successo!           │
 │                  Controlla i log per eventuali errori.            │
-|                   v2.2.0 -- By MagnetarMan                        │
+|                   v1.0.0 Beta -- By MagnetarMan                   │
 └───────────────────────────────────────────────────────────────────┘   
 EOF
 
@@ -231,11 +217,9 @@ reboot_os() {
     fi
 }
 
-
 # Funzione principale Script
 main() {
     show_title       # Show Titolo Script
-    create_log       # Crea log di tutto lo script
     setup_system     # Ottimizzazione mirror e aggiornamento sistema
     install_flatpack # installazione di Flatpak e Snap
     setup_terminal   # installazione di MyBash, Starship, FZF, Zoxide, Fastfetch, installazione alias
@@ -245,10 +229,9 @@ main() {
     setup_mh         # installazione Prodotti MediaHuman
     install_ollama   # installazione di Ollama
     clean_os         # Pulizia del sistema post installazione
-    add_keys         # Aggiunta automatica delle chiavi GPG mancanti per i repository APT
     show_outro       # Mostra informazioni finali
-    print_warn "🔧🔧🔧 Pulizia Completa! Riavviare il Sistema! 🔧🔧🔧" # Messaggio di chiusura
-    reboot_os        # Riavvio del sistema
+    print_warn "🔧🔧🔧 Pulizia Completa! Riavviare il Sistema! 🔧🔧🔧"
+    reboot_os
 }
 
 main
