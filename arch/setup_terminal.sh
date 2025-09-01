@@ -57,7 +57,7 @@ install_mybash() {
 
     # Starship
     print_msg "Installazione Starship..."
-    curl -sSL https://starship.rs/install.sh | sh -s -- -y || { print_error "Errore Starship!"; exit 1; }
+    sudo pacman -S --noconfirm --needed starship || { print_error "Errore Starship!"; exit 1; }
 
     # FZF
     if ! command_exists fzf; then
