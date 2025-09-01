@@ -39,43 +39,23 @@ setup_snap() {
     if ! command_exists snap; then
         print_msg "Snap non è installato. Installazione in corso..."
         if command_exists yay; then
-            if [ "$EUID" -eq 0 ]; then
-                if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
-                    print_warn "Eseguo yay come utente normale ($SUDO_USER) tramite sudo."
-                    sudo -u "$SUDO_USER" yay -S --noconfirm snapd || {
-                        print_warn "Installazione di Snap saltata."
-                        return 1
-                    }
-                else
-                    print_warn "Non è stato possibile determinare l'utente non-root per yay. Installazione Snap saltata."
-                    return 1
-                fi
+            if [ "$EUID" -eq 0 ] && [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
+                print_warn "Eseguo yay come utente normale ($SUDO_USER) tramite sudo."
+                sudo -u "$SUDO_USER" yay -S --noconfirm snapd || return 1
             else
-                yay -S --noconfirm snapd || {
-                    print_warn "Installazione di Snap saltata."
-                    return 1
-                }
+                yay -S --noconfirm snapd || return 1
             fi
+            print_success "Snap installato correttamente."
         else
             print_warn "Gestore AUR (yay) non trovato. Installazione Snap saltata."
             return 1
         fi
-        print_success "Snap installato correttamente."
     else
         print_success "Snap è già installato."
     fi
 
-    sudo systemctl enable --now snapd.socket || {
-        print_error "Impossibile abilitare/avviare snapd.socket"
-        return 1
-    }
-
-    if [ "$(systemctl is-active snapd.socket)" != "active" ]; then
-        print_warn "Il servizio snapd.socket non risulta attivo."
-    else
-        print_success "Servizio snapd.socket attivo."
-    fi
-
+    sudo systemctl enable --now snapd.socket || { print_error "Impossibile abilitare/avviare snapd.socket"; return 1; }
+    systemctl is-active --quiet snapd.socket && print_success "Servizio snapd.socket attivo." || print_warn "Il servizio snapd.socket non risulta attivo."
     [ -e /snap ] || sudo ln -sf /var/lib/snapd/snap /snap 2>/dev/null
 
     # Aggiungi /snap/bin al PATH se necessario (solo per la sessione corrente)
@@ -90,11 +70,7 @@ setup_snap() {
         return 0
     fi
 
-    if ! snap version &>/dev/null; then
-        print_error "Snap non sembra funzionare correttamente dopo l'installazione. Potrebbe essere necessario riavviare la sessione utente."
-        return 1
-    fi
-
+    snap version &>/dev/null || { print_error "Snap non sembra funzionare correttamente dopo l'installazione. Potrebbe essere necessario riavviare la sessione utente."; return 1; }
     print_success "Snap configurato correttamente."
     sleep 1
 }
