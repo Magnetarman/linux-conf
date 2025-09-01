@@ -97,9 +97,9 @@ setup_terminal() {
 }
 
 # Installazione Pacchetti APT
-install_apt() {
+install_yay() {
     print_msg "Installazione pacchetti in corso..."
-    bash "$SCRIPT_DIR/install_apt.sh"
+    bash "$SCRIPT_DIR/install_yay.sh"
     print_success "Pacchetti installati con successo."
 }
 
@@ -241,7 +241,7 @@ main() {
     setup_system     # Ottimizzazione mirror e aggiornamento sistema
     install_flatpack # installazione di Flatpak e Snap
     setup_terminal   # installazione di MyBash, Starship, FZF, Zoxide, Fastfetch, installazione alias
-    install_apt      # installazione pacchetti APT
+    install_yay      # installazione pacchetti APT
     install_external # installazione pacchetti esterni AppImage, DEB, Installazioni avanzate
     setup_games      # installazione driver e supporto giochi
     setup_mh         # installazione Prodotti MediaHuman
