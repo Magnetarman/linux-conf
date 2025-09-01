@@ -39,6 +39,9 @@ setup_snap() {
     if ! command_exists snap; then
         print_msg "Snap non è installato. Installazione in corso..."
         if command_exists yay; then
+            if [ "$EUID" -eq 0 ]; then
+                print_warn "Attenzione: stai eseguendo lo script come root. L'installazione di snapd tramite yay potrebbe non essere sicura. Procedo comunque."
+            fi
             yay -S --noconfirm snapd || {
                 print_warn "Installazione di Snap saltata."
                 return 1
@@ -65,8 +68,20 @@ setup_snap() {
 
     [ -e /snap ] || sudo ln -sf /var/lib/snapd/snap /snap 2>/dev/null
 
+    # Aggiungi /snap/bin al PATH se necessario (solo per la sessione corrente)
+    if [ -d "/snap/bin" ] && [[ ":$PATH:" != *":/snap/bin:"* ]]; then
+        export PATH="$PATH:/snap/bin"
+        print_warn "Aggiunto /snap/bin al PATH per la sessione corrente."
+    fi
+
+    if ! command_exists snap; then
+        print_warn "Il comando 'snap' non è disponibile nella sessione corrente. Potrebbe essere necessario riavviare la shell o la sessione utente."
+        print_warn "Se dopo il riavvio il comando 'snap' non funziona, verifica che /snap/bin sia nel PATH."
+        return 0
+    fi
+
     if ! snap version &>/dev/null; then
-        print_error "Snap non sembra funzionare correttamente dopo l'installazione."
+        print_error "Snap non sembra funzionare correttamente dopo l'installazione. Potrebbe essere necessario riavviare la sessione utente."
         return 1
     fi
 
