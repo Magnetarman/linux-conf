@@ -40,12 +40,22 @@ setup_snap() {
         print_msg "Snap non è installato. Installazione in corso..."
         if command_exists yay; then
             if [ "$EUID" -eq 0 ]; then
-                print_warn "Attenzione: stai eseguendo lo script come root. L'installazione di snapd tramite yay potrebbe non essere sicura. Procedo comunque."
+                if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
+                    print_warn "Eseguo yay come utente normale ($SUDO_USER) tramite sudo."
+                    sudo -u "$SUDO_USER" yay -S --noconfirm snapd || {
+                        print_warn "Installazione di Snap saltata."
+                        return 1
+                    }
+                else
+                    print_warn "Non è stato possibile determinare l'utente non-root per yay. Installazione Snap saltata."
+                    return 1
+                fi
+            else
+                yay -S --noconfirm snapd || {
+                    print_warn "Installazione di Snap saltata."
+                    return 1
+                }
             fi
-            yay -S --noconfirm snapd || {
-                print_warn "Installazione di Snap saltata."
-                return 1
-            }
         else
             print_warn "Gestore AUR (yay) non trovato. Installazione Snap saltata."
             return 1
