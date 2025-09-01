@@ -13,7 +13,6 @@ declare -A PKGS
 PKGS["AUR"]="visual-studio-code-bin google-chrome onlyoffice-bin enpass-bin github-desktop-bin brave-bin"
 PKGS["Sistema"]="ffmpeg timeshift baobab piper mediainfo python-pip"
 PKGS["Browser"]="firefox"
-PKGS["Comunicazione"]="thunderbird"
 PKGS["Multimedia"]="vlc handbrake mkvtoolnix-gui obs-studio"
 PKGS["Produttività"]="jdk-openjdk simple-scan filezilla gimp"
 PKGS["Compatibilità"]="wine winbind winetricks xorriso openssl ocl-icd fakeroot xz unzip"
@@ -54,7 +53,7 @@ install_packages() {
 install_flatpak_apps() {
     setup_flatpak
     local flatpak_apps=(
-        org.telegram.desktop org.localsend.localsend_app com.plexamp.Plexamp org.upscayl.Upscayl com.rustdesk.RustDesk org.freac.freac org.freefilesync.FreeFileSync io.github.jonmagon.kdiskmark com.geeks3d.furmark io.github.wiiznokes.fan-control org.gnome.EasyTAG dev.edfloreshz.Tasks org.jdownloader.JDownloader com.spotify.Client org.cryptomator.Cryptomator com.ktechpit.whatsie io.github.peazip.PeaZip
+        org.telegram.desktop org.localsend.localsend_app com.plexamp.Plexamp org.upscayl.Upscayl com.rustdesk.RustDesk org.freac.freac org.freefilesync.FreeFileSync io.github.jonmagon.kdiskmark com.geeks3d.furmark io.github.wiiznokes.fan-control org.gnome.EasyTAG dev.edfloreshz.Tasks org.jdownloader.JDownloader com.spotify.Client org.cryptomator.Cryptomator com.ktechpit.whatsie io.github.peazip.PeaZip eu.betterbird.Betterbird
     )
     for app in "${flatpak_apps[@]}"; do
         flatpak info "$app" &>/dev/null && print_warn "$app è già installato" || (flatpak install flathub "$app" -y && print_success "$app installato con successo" || print_error "Installazione di $app fallita")
