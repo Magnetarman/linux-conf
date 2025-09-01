@@ -1,28 +1,17 @@
-# Variabili di colore
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
-
-# Configurazione Messaggi
-print_msg() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-print_success() { echo -e "${GREEN}[✅ SUCCESS]${RESET} $1"; }
-print_warn() { echo -e "${YELLOW}[⚠️ WARNING]${RESET} $1"; }
-print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
-print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
-
-# Funzione per verificare se un comando esiste
-command_exists() {
-    command -v "$1" &>/dev/null
-}
+# Colori e messaggi in una sola funzione
+_c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
+print_msg()     { _c info "$@"; }
+print_success() { _c ok "$@"; }
+print_warn()    { _c warn "$@"; }
+print_error()   { _c err "$@"; }
+print_ask()     { _c ask "$@"; }
+command_exists() { command -v "$1" &>/dev/null; }
 
 # Installazione di flatpak e flathub
 install_flatpak() {
     if ! command_exists flatpak; then
         print_msg "Installazione di Flatpak..."
-        sudo apt update -y && sudo apt install -y flatpak
+    sudo apt-get update -y && sudo apt-get install -y flatpak
     else
         print_warn "Flatpak è già installato."
     fi
@@ -38,7 +27,7 @@ setup_snap() {
 
     if ! command_exists snap; then
         print_msg "Snap non è installato. Installazione in corso..."
-        sudo apt-get update -y && sudo apt-get install -y snapd || {
+    sudo apt-get update -y && sudo apt-get install -y snapd || {
             print_warn "Installazione di Snap saltata."
             return 1
         }

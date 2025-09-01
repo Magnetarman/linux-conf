@@ -1,39 +1,23 @@
 #!/bin/bash
-# Variabili di colore
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-RESET='\033[0m'
-
-# Configurazione Messaggi
-print_msg() { echo -e "${BLUE}[INFO]${RESET} $1"; }
-print_success() { echo -e "${GREEN}[✅ SUCCESS]${RESET} $1"; }
-print_warn() { echo -e "${YELLOW}[⚠️ WARNING]${RESET} $1"; }
-print_error() { echo -e "${RED}[❌ ERROR]${RESET} $1"; }
-print_ask() { echo -e "${CYAN}[🤔 ASK]${RESET} $1"; }
-
-# Funzione per verificare se un comando esiste
-command_exists() {
-    command -v "$1" &>/dev/null
-}
+# Colori e messaggi in una sola funzione
+_c() { case $1 in info) c="\033[0;34m"; p="[INFO]";; ok) c="\033[0;32m"; p="[✅ SUCCESS]";; warn) c="\033[0;33m"; p="[⚠️ WARNING]";; err) c="\033[0;31m"; p="[❌ ERROR]";; ask) c="\033[0;36m"; p="[🤔 ASK]";; esac; shift; echo -e "${c}${p}\033[0m $*"; }
+print_msg()     { _c info "$@"; }
+print_success() { _c ok "$@"; }
+print_warn()    { _c warn "$@"; }
+print_error()   { _c err "$@"; }
+print_ask()     { _c ask "$@"; }
+command_exists() { command -v "$1" &>/dev/null; }
 
 # Installazione e configurazione di Bottles (Inseirlo nella sezione Giochi)
 install_bottles() {
-    print_msg "Inizio installazione e configurazione di Bottles..."
+    print_msg "Installazione/configurazione Bottles..."
 
     # Installazione Bottles
-    if flatpak list | grep -q com.usebottles.bottles; then
-        print_success "Bottles è già installato. Nessuna azione necessaria."
-    else
-        print_msg "Installazione di Bottles in corso..."
-        flatpak install -y flathub com.usebottles.bottles || {
-            print_error "Installazione di Bottles fallita."
-            return 1
-        }
-        print_success "Bottles installato correttamente."
-    fi
+    flatpak list | grep -q com.usebottles.bottles && print_success "Bottles già installato." || {
+        print_msg "Installazione di Bottles...";
+        flatpak install -y flathub com.usebottles.bottles || { print_error "Installazione di Bottles fallita."; return 1; };
+        print_success "Bottles installato correttamente.";
+    }
 
     # Creazione collegamento nel menu
     local desktop_file="$HOME/.local/share/applications/bottles.desktop"
@@ -55,7 +39,7 @@ EOF
 
 install_heroic() {
     # Installazione Heroic Games Launcher
-    print_msg "Installazione di Heroic Games Launcher in corso..."
+    print_msg "Installazione Heroic Games Launcher..."
     if flatpak list | grep -q com.heroicgameslauncher.hgl; then
         print_success "Heroic Games Launcher è già installato."
     else
@@ -74,13 +58,11 @@ install_heroic() {
     }
 
     # Aggiungiamo il PATH solo se non è già presente
-    if ! grep -q 'export PATH=\"\$PATH:\$HOME/.local/bin\"' "$HOME/.bashrc"; then
+    grep -q 'export PATH="$PATH:$HOME/.local/bin"' "$HOME/.bashrc" && print_success "PATH già configurato in .bashrc" || {
         echo 'export PATH="$PATH:$HOME/.local/bin"' >>"$HOME/.bashrc"
         print_success "PATH aggiornato in .bashrc"
-        print_warn "Per rendere effettive le modifiche al PATH, esegui 'source ~/.bashrc' o riavvia il terminale"
-    else
-        print_success "Il PATH è già configurato correttamente in .bashrc"
-    fi
+        print_warn "Per rendere effettive le modifiche, esegui 'source ~/.bashrc' o riavvia il terminale"
+    }
 }
 
 # Funzione per ritornare allo script principale
