@@ -42,7 +42,11 @@ install_packages() {
     if [ ${#aur_pkgs[@]} -gt 0 ]; then
         if command_exists yay; then
             print_msg "Installazione pacchetti AUR: ${aur_pkgs[*]}"
-            yay -S --noconfirm --needed "${aur_pkgs[@]}" && print_success "AUR installati con successo" || print_error "Errore durante l'installazione dei pacchetti AUR"
+            if [ "$EUID" -eq 0 ] && [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
+                sudo -u "$SUDO_USER" yay -S --noconfirm --needed "${aur_pkgs[@]}" && print_success "AUR installati con successo" || print_error "Errore durante l'installazione dei pacchetti AUR"
+            else
+                yay -S --noconfirm --needed "${aur_pkgs[@]}" && print_success "AUR installati con successo" || print_error "Errore durante l'installazione dei pacchetti AUR"
+            fi
         else
             print_warn "Pacchetti AUR richiesti ma yay non trovato. Installazione saltata."
         fi
